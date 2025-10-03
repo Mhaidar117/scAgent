@@ -152,7 +152,7 @@ This project uses:
 
 ## Roadmap
 
-### Phase 0: Foundation 
+### Foundation 
 
 - [x] Core data models (SessionState, ToolResult)
 - [x] CLI interface with basic commands
@@ -161,34 +161,34 @@ This project uses:
 - [x] Test suite and CI/CD
 - [x] Developer tooling
 
-### Phase 1: Core QC Loop 
+### Core QC Loop 
 
-- [ ] Scanpy integration for QC metrics
-- [ ] QC plotting (violin plots, scatter plots)
-- [ ] QC filtering with thresholds
-- [ ] Real AnnData I/O operations
+- [x] Scanpy integration for QC metrics
+- [x] QC plotting (violin plots, scatter plots)
+- [x] QC filtering with thresholds
+- [x] Real AnnData I/O operations
 
-### Phase 2: Graph Analysis 
+### Graph Analysis 
 
 - [ ] PCA, neighbors, UMAP computation
 - [ ] Leiden clustering
 - [ ] Quick graph generation tools
 
-### Phase 3: Advanced Methods 
+### Advanced Methods 
 
-- [ ] scAR denoising (optional)
+- [x] scAR denoising (optional)
 - [ ] scVI latent representation
-- [ ] Doublet detection and removal
+- [x] Doublet detection and removal
 
-### Phase 4: LangChain Integration 
+### LangChain Integration 
 
-- [ ] Natural language processing
-- [ ] RAG knowledge base
-- [ ] Tool selection and parameter extraction
+- [x] Natural language processing
+- [x] RAG knowledge base
+- [x] Tool selection and parameter extraction
 
-### Phase 5: Reporting & Polish 
+### Reporting & Polish 
 
-- [ ] HTML/PDF report generation
+- [x] HTML/PDF report generation
 - [ ] Enhanced visualizations
 - [ ] Performance telemetry
 
