@@ -4,22 +4,20 @@ A runtime agent for scRNA-seq quality control workflows via natural language.
 
 [![CI](https://github.com/your-org/scqc-agent/workflows/CI/badge.svg)](https://github.com/your-org/scqc-agent/actions)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 
 ## Overview
 
 scQC Agent provides a natural language interface for executing single-cell RNA-seq quality control workflows. The agent orchestrates typed Python tools corresponding to standard QC pipeline steps and returns structured artifacts (plots, CSVs, .h5ad snapshots) with citations.
 
-**Phase 0 Status**: ✅ Foundation complete - Core data models, CLI interface, and developer tooling
-**Phase 1 Coming**: 🔬 Real Scanpy integration for QC metrics, plotting, and filtering
 
 ## Key Features
 
-- 🤖 **Natural Language Interface**: Describe QC workflows in plain English
-- 📊 **Structured State Management**: Persistent session state with checkpoints and artifacts
-- 🔧 **Typed Tool System**: Composable tools for each QC pipeline step
-- 📁 **Reproducible Outputs**: Deterministic file paths and comprehensive artifact tracking
-- 🧪 **Developer-Friendly**: Full test suite, type checking, and modern Python tooling
+-  **Natural Language Interface**: Describe QC workflows in plain English
+-  **Structured State Management**: Persistent session state with checkpoints and artifacts
+-  **Typed Tool System**: Composable tools for each QC pipeline step
+-  **Reproducible Outputs**: Deterministic file paths and comprehensive artifact tracking
+-  **Developer-Friendly**: Full test suite, type checking, and modern Python tooling
 
 ## Installation
 
@@ -154,7 +152,7 @@ This project uses:
 
 ## Roadmap
 
-### Phase 0: Foundation ✅
+### Phase 0: Foundation 
 
 - [x] Core data models (SessionState, ToolResult)
 - [x] CLI interface with basic commands
@@ -163,32 +161,32 @@ This project uses:
 - [x] Test suite and CI/CD
 - [x] Developer tooling
 
-### Phase 1: Core QC Loop 🔬
+### Phase 1: Core QC Loop 
 
 - [ ] Scanpy integration for QC metrics
 - [ ] QC plotting (violin plots, scatter plots)
 - [ ] QC filtering with thresholds
 - [ ] Real AnnData I/O operations
 
-### Phase 2: Graph Analysis 📊
+### Phase 2: Graph Analysis 
 
 - [ ] PCA, neighbors, UMAP computation
 - [ ] Leiden clustering
 - [ ] Quick graph generation tools
 
-### Phase 3: Advanced Methods 🧬
+### Phase 3: Advanced Methods 
 
 - [ ] scAR denoising (optional)
 - [ ] scVI latent representation
 - [ ] Doublet detection and removal
 
-### Phase 4: LangChain Integration 🤖
+### Phase 4: LangChain Integration 
 
 - [ ] Natural language processing
 - [ ] RAG knowledge base
 - [ ] Tool selection and parameter extraction
 
-### Phase 5: Reporting & Polish 📋
+### Phase 5: Reporting & Polish 
 
 - [ ] HTML/PDF report generation
 - [ ] Enhanced visualizations
@@ -336,7 +334,7 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the [LICENSE](LICENSE) file for details.
 
 ## Citation
 
@@ -359,4 +357,4 @@ If you use scQC Agent in your research, please cite:
 
 ---
 
-**Status**: Phase 0 Complete ✅ | **Next**: Phase 1 QC Implementation 🔬
+**Status**: Phase 0 Complete | **Next**: Phase 1 QC Implementation 🔬
