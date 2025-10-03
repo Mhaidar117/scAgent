@@ -1,0 +1,176 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scqc-agent"
+version = "0.1.0"
+description = "A runtime agent for scRNA-seq QC workflows via natural language"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "scQC Agent Team"},
+]
+keywords = ["single-cell", "bioinformatics", "QC", "agent", "scanpy"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2.0",
+    "typer[all]>=0.9.0",
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "mypy>=1.0",
+    "ruff>=0.1.0",
+    "black>=23.0",
+    "pre-commit>=3.0",
+    "jupyter>=1.0",
+    "ipykernel>=6.0",
+]
+qc = [
+    "scanpy>=1.10",
+    "matplotlib>=3.6",
+    "seaborn>=0.12",
+]
+models = [
+    "scvi-tools>=1.1",
+    "torch>=2.2",
+]
+agent = [
+    "langchain>=0.1.0",
+    "langchain-core>=0.1.0",
+    "langchain-community>=0.0.20",
+    "faiss-cpu>=1.7.4",
+    "sentence-transformers>=2.2.0",
+    "rank-bm25>=0.2.2",
+    "jinja2>=3.1.0",
+    "pyyaml>=6.0",
+]
+ambient = [
+    "scar>=2.0.0",
+    "cellbender>=0.3.0",  
+    "scib>=1.1.0",        
+    "pandas>=1.3.0",
+    "numpy>=1.20.0",
+]
+
+batch = [
+    "scib-metrics>=1.0.0",  
+    "scikit-learn>=1.0.0",  
+    "scipy>=1.7.0",
+    "pandas>=1.3.0",
+    "numpy>=1.20.0",
+]
+
+[project.scripts]
+scqc = "scqc_agent.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/your-org/scqc-agent"
+Documentation = "https://scqc-agent.readthedocs.io"
+Repository = "https://github.com/your-org/scqc-agent"
+"Bug Tracker" = "https://github.com/your-org/scqc-agent/issues"
+
+[tool.setuptools.packages.find]
+include = ["scqc_agent*"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/**/*" = ["S101", "D"]
+
+[tool.black]
+target-version = ['py310']
+line-length = 100
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "scanpy.*",
+    "scvi.*",
+    "anndata.*",
+    "pandas.*",
+    "numpy.*",
+    "matplotlib.*",
+    "seaborn.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "--cov=scqc_agent",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
+
+[tool.coverage.run]
+source = ["scqc_agent"]
+omit = [
+    "tests/*",
+    "setup.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+

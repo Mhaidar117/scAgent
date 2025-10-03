@@ -1,0 +1,838 @@
+[
+  {
+    "content": "---\ntitle: \"Graph Analysis and Clustering in scRNA-seq\"\ntopic: \"graph_analysis\"\nspecies: \"general\"\nmethods: [\"pca\", \"umap\", \"leiden\", \"neighbors\"]\n---\n\n# Graph Analysis and Clustering in scRNA-seq\n\n## Overview\n\nGraph-based analysis is fundamental to scRNA-seq workflows, enabling dimensionality reduction, visualization, and clustering. The typical workflow involves PCA → neighbor graph → UMAP → clustering.\n\n## Principal Component Analysis (PCA)\n\n### Purpose\n- Reduce dimensionality from thousands of genes to manageable number\n- Remove noise and technical variation\n- Capture major sources of variation\n\n### Key Parameters\n- `n_comps`: Number of components (default: 50)\n  - Increase for complex datasets\n  - Check elbow plot for optimal number\n  - Balance between information and noise",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md",
+      "filename": "graph_analysis.md",
+      "file_type": ".md",
+      "file_size": 7400,
+      "title": "Graph Analysis and Clustering in scRNA-seq",
+      "topic": "graph_analysis",
+      "species": "general",
+      "methods": [
+        "pca",
+        "umap",
+        "leiden",
+        "neighbors"
+      ]
+    },
+    "chunk_id": "graph_analysis_000",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md"
+  },
+  {
+    "content": "- `svd_solver`: Algorithm choice\n  - 'arpack': memory efficient, slower\n  - 'randomized': faster for large datasets\n  - 'full': exact but memory intensive\n\n### Best Practices\n```python\n# Standard PCA workflow\nsc.pp.highly_variable_genes(adata, min_mean=0.0125, max_mean=3, min_disp=0.5)\nadata.raw = adata\nadata = adata[:, adata.var.highly_variable]\n\nsc.pp.scale(adata, max_value=10)\nsc.tl.pca(adata, svd_solver='arpack')\n\n# Examine explained variance\nsc.pl.pca_variance_ratio(adata, log=True, n_pcs=50)\n```\n\n## Neighbor Graph Construction\n\n### k-Nearest Neighbors (kNN)\n- Each cell connected to k most similar cells\n- Similarity based on Euclidean distance in PC space\n- Foundation for clustering and UMAP",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md",
+      "filename": "graph_analysis.md",
+      "file_type": ".md",
+      "file_size": 7400,
+      "title": "Graph Analysis and Clustering in scRNA-seq",
+      "topic": "graph_analysis",
+      "species": "general",
+      "methods": [
+        "pca",
+        "umap",
+        "leiden",
+        "neighbors"
+      ]
+    },
+    "chunk_id": "graph_analysis_001",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md"
+  },
+  {
+    "content": "### Parameters\n- `n_neighbors`: Number of neighbors (default: 15)\n  - Smaller: more granular clusters\n  - Larger: broader, smoother clusters\n  - Scale with dataset size\n\n- `n_pcs`: PCs to use (default: 40)\n  - Use PCs capturing biological variation\n  - Avoid noisy high-order components\n  - Check explained variance ratios\n\n- `metric`: Distance metric\n  - 'euclidean': standard choice\n  - 'cosine': for normalized data\n  - 'correlation': for specific analyses\n\n### Implementation\n```python\nsc.pp.neighbors(\n    adata,\n    n_neighbors=15,\n    n_pcs=40,\n    use_rep='X_pca',  # or 'X_scVI' for integrated data\n    metric='euclidean',\n    knn=True\n)\n```\n\n## UMAP Embedding",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md",
+      "filename": "graph_analysis.md",
+      "file_type": ".md",
+      "file_size": 7400,
+      "title": "Graph Analysis and Clustering in scRNA-seq",
+      "topic": "graph_analysis",
+      "species": "general",
+      "methods": [
+        "pca",
+        "umap",
+        "leiden",
+        "neighbors"
+      ]
+    },
+    "chunk_id": "graph_analysis_002",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md"
+  },
+  {
+    "content": "## UMAP Embedding\n\n### Uniform Manifold Approximation and Projection\n- Non-linear dimensionality reduction\n- Preserves local and global structure\n- Better than t-SNE for scRNA-seq\n\n### Key Parameters\n- `min_dist`: Minimum distance between points\n  - Smaller (0.1): tighter clusters\n  - Larger (0.5): spread out visualization\n  - Default: 0.5\n\n- `spread`: Scale of embedded points\n  - Controls overall scale\n  - Interact with min_dist\n  - Default: 1.0\n\n- `n_components`: Output dimensions (default: 2)\n  - 2D for visualization\n  - Higher for downstream analysis\n\n### Usage\n```python\nsc.tl.umap(adata, min_dist=0.3, spread=1.0)\nsc.pl.umap(adata, color=['total_counts', 'n_genes_by_counts'])\n```\n\n## Leiden Clustering",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md",
+      "filename": "graph_analysis.md",
+      "file_type": ".md",
+      "file_size": 7400,
+      "title": "Graph Analysis and Clustering in scRNA-seq",
+      "topic": "graph_analysis",
+      "species": "general",
+      "methods": [
+        "pca",
+        "umap",
+        "leiden",
+        "neighbors"
+      ]
+    },
+    "chunk_id": "graph_analysis_003",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md"
+  },
+  {
+    "content": "## Leiden Clustering\n\n### Algorithm\n- Community detection on neighbor graph\n- Optimizes modularity with resolution parameter\n- More stable than Louvain clustering\n\n### Resolution Parameter\n- Controls granularity of clustering\n- Lower (0.1-0.5): fewer, larger clusters\n- Higher (1.0-2.0): many, smaller clusters\n- Dataset-dependent optimization needed\n\n### Best Practices\n```python\n# Try multiple resolutions\nfor res in [0.1, 0.3, 0.5, 0.8, 1.0, 1.2]:\n    sc.tl.leiden(adata, resolution=res, key_added=f'leiden_{res}')\n\n# Visualize different resolutions\nsc.pl.umap(adata, color=['leiden_0.3', 'leiden_0.5', 'leiden_0.8'])\n```\n\n## Parameter Optimization",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md",
+      "filename": "graph_analysis.md",
+      "file_type": ".md",
+      "file_size": 7400,
+      "title": "Graph Analysis and Clustering in scRNA-seq",
+      "topic": "graph_analysis",
+      "species": "general",
+      "methods": [
+        "pca",
+        "umap",
+        "leiden",
+        "neighbors"
+      ]
+    },
+    "chunk_id": "graph_analysis_004",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md"
+  },
+  {
+    "content": "## Parameter Optimization\n\n### Neighbor Graph Tuning\n1. **Visual inspection**\n   - UMAP should show clear cell type separation\n   - Avoid over-connection or fragmentation\n   - Balance between resolution and connectivity\n\n2. **Connectivity metrics**\n   - Average neighbors per cell\n   - Graph connectivity measures\n   - Silhouette scores\n\n### Clustering Resolution\n1. **Biological validation**\n   - Check known marker gene expression\n   - Validate against expected cell types\n   - Consider prior knowledge\n\n2. **Stability analysis**\n   - Bootstrap clustering\n   - Parameter sensitivity analysis\n   - Consensus clustering\n\n## Quality Control Metrics",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md",
+      "filename": "graph_analysis.md",
+      "file_type": ".md",
+      "file_size": 7400,
+      "title": "Graph Analysis and Clustering in scRNA-seq",
+      "topic": "graph_analysis",
+      "species": "general",
+      "methods": [
+        "pca",
+        "umap",
+        "leiden",
+        "neighbors"
+      ]
+    },
+    "chunk_id": "graph_analysis_005",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md"
+  },
+  {
+    "content": "## Quality Control Metrics\n\n### Graph Quality\n- **Connectivity**: All cells should be connected\n- **Neighborhood preservation**: Similar cells should be neighbors\n- **Batch mixing**: Integration quality assessment\n\n### Clustering Quality\n- **Silhouette scores**: Within vs between cluster similarity\n- **Modularity**: Strength of community structure\n- **Marker gene enrichment**: Biological validation\n\n## Advanced Techniques\n\n### Multi-resolution Clustering\n```python\n# Hierarchical clustering at multiple resolutions\nsc.tl.leiden(adata, resolution=0.5, key_added='leiden_coarse')\nsc.tl.leiden(adata, resolution=1.5, key_added='leiden_fine')\n\n# Compare resolutions\nsc.pl.umap(adata, color=['leiden_coarse', 'leiden_fine'])\n```",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md",
+      "filename": "graph_analysis.md",
+      "file_type": ".md",
+      "file_size": 7400,
+      "title": "Graph Analysis and Clustering in scRNA-seq",
+      "topic": "graph_analysis",
+      "species": "general",
+      "methods": [
+        "pca",
+        "umap",
+        "leiden",
+        "neighbors"
+      ]
+    },
+    "chunk_id": "graph_analysis_006",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md"
+  },
+  {
+    "content": "# Compare resolutions\nsc.pl.umap(adata, color=['leiden_coarse', 'leiden_fine'])\n```\n\n### Subclustering\n```python\n# Focus on specific cluster\ncluster_adata = adata[adata.obs['leiden'] == '3'].copy()\n\n# Re-analyze at higher resolution\nsc.pp.neighbors(cluster_adata, n_neighbors=10)\nsc.tl.leiden(cluster_adata, resolution=1.0)\nsc.tl.umap(cluster_adata)\n```\n\n## Integration Considerations\n\n### Batch-Corrected Analysis\n```python\n# Use integrated representation\nsc.pp.neighbors(adata, use_rep='X_scVI')\nsc.tl.umap(adata)\nsc.tl.leiden(adata, resolution=0.5)\n\n# Check batch mixing\nsc.pl.umap(adata, color=['batch', 'leiden'])\n```\n\n### Cross-Modal Integration\n- Combine different data types (RNA + ATAC)\n- Use appropriate distance metrics\n- Consider modality-specific preprocessing",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md",
+      "filename": "graph_analysis.md",
+      "file_type": ".md",
+      "file_size": 7400,
+      "title": "Graph Analysis and Clustering in scRNA-seq",
+      "topic": "graph_analysis",
+      "species": "general",
+      "methods": [
+        "pca",
+        "umap",
+        "leiden",
+        "neighbors"
+      ]
+    },
+    "chunk_id": "graph_analysis_007",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md"
+  },
+  {
+    "content": "## Common Issues and Solutions\n\n### Over-clustering\n**Symptoms:**\n- Too many small clusters\n- Splitting of known cell types\n- Low biological interpretability\n\n**Solutions:**\n- Reduce resolution parameter\n- Increase n_neighbors\n- Check for batch effects\n\n### Under-clustering\n**Symptoms:**\n- Merging of distinct cell types\n- Large heterogeneous clusters\n- Poor marker gene specificity\n\n**Solutions:**\n- Increase resolution parameter\n- Reduce n_neighbors\n- Use more PCs in neighbor graph\n\n### Poor Visualization\n**Symptoms:**\n- Overlapping clusters in UMAP\n- Poor separation of cell types\n- Batch effects visible\n\n**Solutions:**\n- Adjust UMAP parameters (min_dist, spread)\n- Improve neighbor graph quality\n- Better batch correction\n\n## Validation Strategies",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md",
+      "filename": "graph_analysis.md",
+      "file_type": ".md",
+      "file_size": 7400,
+      "title": "Graph Analysis and Clustering in scRNA-seq",
+      "topic": "graph_analysis",
+      "species": "general",
+      "methods": [
+        "pca",
+        "umap",
+        "leiden",
+        "neighbors"
+      ]
+    },
+    "chunk_id": "graph_analysis_008",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md"
+  },
+  {
+    "content": "## Validation Strategies\n\n### Marker Gene Analysis\n```python\n# Find cluster markers\nsc.tl.rank_genes_groups(adata, 'leiden', method='wilcoxon')\nsc.pl.rank_genes_groups(adata, n_genes=5, sharey=False)\n\n# Check specific markers\nsc.pl.umap(adata, color=['CD3D', 'CD19', 'LYZ'])\n```\n\n### Functional Enrichment\n- Gene set enrichment analysis\n- Pathway analysis per cluster\n- Functional annotation validation\n\n### Cross-Dataset Validation\n- Project onto reference atlases\n- Compare with published datasets\n- Cell type annotation transfer\n\n## Species-Specific Considerations\n\n### Human\n- Higher genetic diversity\n- More complex cell type hierarchies\n- Consider population stratification\n\n### Mouse\n- More standardized genetic background\n- Well-characterized cell types\n- Abundant reference data",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md",
+      "filename": "graph_analysis.md",
+      "file_type": ".md",
+      "file_size": 7400,
+      "title": "Graph Analysis and Clustering in scRNA-seq",
+      "topic": "graph_analysis",
+      "species": "general",
+      "methods": [
+        "pca",
+        "umap",
+        "leiden",
+        "neighbors"
+      ]
+    },
+    "chunk_id": "graph_analysis_009",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md"
+  },
+  {
+    "content": "## Computational Considerations\n\n### Memory Management\n- Use sparse matrices\n- Subsample for parameter tuning\n- Consider approximate algorithms\n\n### Parallelization\n- Multi-threaded UMAP\n- Distributed computing for large datasets\n- GPU acceleration where available\n\n### Reproducibility\n- Set random seeds\n- Document parameter choices\n- Version control for code and data",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md",
+      "filename": "graph_analysis.md",
+      "file_type": ".md",
+      "file_size": 7400,
+      "title": "Graph Analysis and Clustering in scRNA-seq",
+      "topic": "graph_analysis",
+      "species": "general",
+      "methods": [
+        "pca",
+        "umap",
+        "leiden",
+        "neighbors"
+      ]
+    },
+    "chunk_id": "graph_analysis_010",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/graph_analysis.md"
+  },
+  {
+    "content": "---\ntitle: \"Quality Control Guidelines for scRNA-seq\"\ntopic: \"quality_control\"\nspecies: \"general\"\npriority: \"high\"\n---\n\n# Quality Control Guidelines for scRNA-seq\n\n## Overview\n\nQuality control (QC) is the critical first step in scRNA-seq analysis. Poor quality cells and genes can significantly impact downstream analysis results.\n\n## Key QC Metrics\n\n### Per-Cell Metrics\n\n1. **Total UMI/read count per cell**\n   - Low counts indicate poor capture efficiency or cell death\n   - Typical range: 1,000-100,000 UMIs per cell\n   - Very high counts may indicate doublets\n\n2. **Number of detected genes per cell**\n   - Fewer genes suggest poor RNA capture\n   - Typical minimum: 200-500 genes per cell\n   - Species-dependent variations exist",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/qc_guidelines.md",
+      "filename": "qc_guidelines.md",
+      "file_type": ".md",
+      "file_size": 5418,
+      "title": "Quality Control Guidelines for scRNA-seq",
+      "topic": "quality_control",
+      "species": "general",
+      "priority": "high"
+    },
+    "chunk_id": "qc_guidelines_000",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/qc_guidelines.md"
+  },
+  {
+    "content": "3. **Mitochondrial gene percentage**\n   - High mitochondrial percentage indicates cell stress/death\n   - Human: typically < 20% for most cell types\n   - Mouse: typically < 15% for most cell types\n   - Tissue-specific variations exist\n\n4. **Ribosomal gene percentage**\n   - Very high ribosomal percentage may indicate stress\n   - Typical range: 10-40% depending on cell type\n\n### Per-Gene Metrics\n\n1. **Number of cells expressing each gene**\n   - Genes expressed in very few cells are often noise\n   - Typical minimum: expressed in at least 3-10 cells\n   - Consider total cell count when setting thresholds\n\n2. **Total expression level per gene**\n   - Very lowly expressed genes contribute little information\n   - Balance between removing noise and retaining biology\n\n## Recommended Thresholds",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/qc_guidelines.md",
+      "filename": "qc_guidelines.md",
+      "file_type": ".md",
+      "file_size": 5418,
+      "title": "Quality Control Guidelines for scRNA-seq",
+      "topic": "quality_control",
+      "species": "general",
+      "priority": "high"
+    },
+    "chunk_id": "qc_guidelines_001",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/qc_guidelines.md"
+  },
+  {
+    "content": "## Recommended Thresholds\n\n### Conservative Approach (Strict QC)\n- Minimum genes per cell: 500\n- Maximum mitochondrial percentage: 15%\n- Minimum cells per gene: 10\n\n### Permissive Approach (Lenient QC)\n- Minimum genes per cell: 200\n- Maximum mitochondrial percentage: 25%\n- Minimum cells per gene: 3\n\n### Adaptive Approach\nUse median absolute deviation (MAD) based thresholds:\n- Filter cells with total counts < median - 3*MAD\n- Filter cells with total counts > median + 3*MAD\n- Filter cells with gene counts < median - 3*MAD\n- Filter cells with mitochondrial % > median + 3*MAD\n\n## Species-Specific Considerations\n\n### Human\n- Mitochondrial gene prefix: \"MT-\"\n- Typical mitochondrial percentage: 5-20%\n- Ribosomal gene prefixes: \"RPS\", \"RPL\"",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/qc_guidelines.md",
+      "filename": "qc_guidelines.md",
+      "file_type": ".md",
+      "file_size": 5418,
+      "title": "Quality Control Guidelines for scRNA-seq",
+      "topic": "quality_control",
+      "species": "general",
+      "priority": "high"
+    },
+    "chunk_id": "qc_guidelines_002",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/qc_guidelines.md"
+  },
+  {
+    "content": "### Mouse\n- Mitochondrial gene prefix: \"mt-\"\n- Typical mitochondrial percentage: 3-15%\n- Generally lower mitochondrial content than human\n\n## Tissue-Specific Considerations\n\n### Brain/Neurons\n- Neurons have high metabolic activity\n- Slightly higher mitochondrial thresholds acceptable\n- May have lower total UMI counts\n\n### Immune Cells\n- T cells often have lower gene counts\n- Consider more permissive thresholds\n- High proliferation may affect QC metrics\n\n### Cancer/Tumor Samples\n- Highly variable QC metrics\n- Consider sample-specific thresholds\n- Dying cells are common, adjust MT thresholds\n\n## Quality Control Workflow\n\n1. **Calculate QC metrics**\n   ```python\n   sc.pp.calculate_qc_metrics(adata, percent_top=None, log1p=False, inplace=True)\n   ```",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/qc_guidelines.md",
+      "filename": "qc_guidelines.md",
+      "file_type": ".md",
+      "file_size": 5418,
+      "title": "Quality Control Guidelines for scRNA-seq",
+      "topic": "quality_control",
+      "species": "general",
+      "priority": "high"
+    },
+    "chunk_id": "qc_guidelines_003",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/qc_guidelines.md"
+  },
+  {
+    "content": "2. **Add mitochondrial and ribosomal gene annotations**\n   ```python\n   adata.var['mt'] = adata.var_names.str.startswith('MT-')  # human\n   adata.var['ribo'] = adata.var_names.str.startswith(('RPS', 'RPL'))\n   ```\n\n3. **Calculate percentages**\n   ```python\n   sc.pp.calculate_qc_metrics(adata, qc_vars=['mt', 'ribo'], \n                              percent_top=None, log1p=False, inplace=True)\n   ```\n\n4. **Visualize QC metrics**\n   ```python\n   sc.pl.violin(adata, ['n_genes_by_counts', 'total_counts', 'pct_counts_mt'],\n                jitter=0.4, multi_panel=True)\n   ```",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/qc_guidelines.md",
+      "filename": "qc_guidelines.md",
+      "file_type": ".md",
+      "file_size": 5418,
+      "title": "Quality Control Guidelines for scRNA-seq",
+      "topic": "quality_control",
+      "species": "general",
+      "priority": "high"
+    },
+    "chunk_id": "qc_guidelines_004",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/qc_guidelines.md"
+  },
+  {
+    "content": "5. **Apply filters**\n   ```python\n   # Filter cells\n   sc.pp.filter_cells(adata, min_genes=200)\n   sc.pp.filter_genes(adata, min_cells=3)\n   \n   # Filter by QC metrics\n   adata = adata[adata.obs.n_genes_by_counts < 2500, :]\n   adata = adata[adata.obs.pct_counts_mt < 20, :]\n   ```\n\n## Best Practices\n\n1. **Always visualize before filtering**\n   - Plot distributions of QC metrics\n   - Look for outliers and batch effects\n   - Consider biological expectations\n\n2. **Document filtering decisions**\n   - Record exact thresholds used\n   - Note number of cells/genes removed\n   - Save pre- and post-filtering plots\n\n3. **Consider batch effects**\n   - QC metrics may vary between batches\n   - Apply batch-aware filtering if needed\n   - Check for systematic differences",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/qc_guidelines.md",
+      "filename": "qc_guidelines.md",
+      "file_type": ".md",
+      "file_size": 5418,
+      "title": "Quality Control Guidelines for scRNA-seq",
+      "topic": "quality_control",
+      "species": "general",
+      "priority": "high"
+    },
+    "chunk_id": "qc_guidelines_005",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/qc_guidelines.md"
+  },
+  {
+    "content": "4. **Iterative approach**\n   - Start with permissive filtering\n   - Examine downstream results\n   - Refine thresholds as needed\n\n5. **Preserve cell type diversity**\n   - Some cell types naturally have different QC profiles\n   - Don't over-filter rare cell types\n   - Consider cell type annotations if available\n\n## Common Mistakes\n\n1. **Over-filtering**\n   - Removing too many cells can bias results\n   - Loss of rare cell types\n   - Reduced statistical power\n\n2. **Under-filtering**\n   - Low-quality cells create spurious clusters\n   - Increased noise in downstream analysis\n   - Poor embedding quality\n\n3. **Ignoring batch effects**\n   - Different samples may need different thresholds\n   - Technical artifacts can masquerade as biology",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/qc_guidelines.md",
+      "filename": "qc_guidelines.md",
+      "file_type": ".md",
+      "file_size": 5418,
+      "title": "Quality Control Guidelines for scRNA-seq",
+      "topic": "quality_control",
+      "species": "general",
+      "priority": "high"
+    },
+    "chunk_id": "qc_guidelines_006",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/qc_guidelines.md"
+  },
+  {
+    "content": "4. **Fixed thresholds across datasets**\n   - QC metrics vary by protocol, tissue, species\n   - Always adapt to your specific dataset\n\n## Validation Steps\n\nAfter QC, validate results by:\n1. Checking cell type marker expression\n2. Examining embedding quality (UMAP/t-SNE)\n3. Assessing cluster stability\n4. Comparing to expected biology",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/qc_guidelines.md",
+      "filename": "qc_guidelines.md",
+      "file_type": ".md",
+      "file_size": 5418,
+      "title": "Quality Control Guidelines for scRNA-seq",
+      "topic": "quality_control",
+      "species": "general",
+      "priority": "high"
+    },
+    "chunk_id": "qc_guidelines_007",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/qc_guidelines.md"
+  },
+  {
+    "content": "---\ntitle: \"Doublet Detection in scRNA-seq Data\"\ntopic: \"doublets\"\nspecies: \"general\"\nmethods: [\"scrublet\", \"doubletfinder\"]\n---\n\n# Doublet Detection in scRNA-seq Data\n\n## Overview\n\nDoublets are droplets containing two or more cells, which can create artificial cell states that confound downstream analysis. Detection and removal of doublets is essential for accurate clustering and cell type identification.\n\n## What are Doublets?\n\nDoublets occur when:\n1. Two cells are captured in the same droplet\n2. Free-floating nuclei aggregate during processing\n3. Cells undergo partial lysis and re-encapsulation\n\nExpected doublet rates depend on cell loading concentration:\n- 1,000 cells/μL: ~0.4% doublets\n- 5,000 cells/μL: ~2.3% doublets  \n- 10,000 cells/μL: ~7.6% doublets\n\n## Detection Methods",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/doublet_detection.md",
+      "filename": "doublet_detection.md",
+      "file_type": ".md",
+      "file_size": 5486,
+      "title": "Doublet Detection in scRNA-seq Data",
+      "topic": "doublets",
+      "species": "general",
+      "methods": [
+        "scrublet",
+        "doubletfinder"
+      ]
+    },
+    "chunk_id": "doublet_detection_000",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/doublet_detection.md"
+  },
+  {
+    "content": "## Detection Methods\n\n### Scrublet (Recommended)\n\nScrublet simulates doublets by randomly combining transcriptomes from the dataset.\n\n**Advantages:**\n- No need for known markers\n- Works well across cell types\n- Provides confidence scores\n- Fast and memory efficient\n\n**Parameters:**\n- `expected_doublet_rate`: Typically 0.06 (6%) for 10X data\n- `sim_doublet_ratio`: Ratio of simulated to observed transcriptomes (default: 2.0)\n- `n_neighbors`: Number of neighbors for KNN graph (default: round(0.5 * sqrt(n_cells)))\n\n**Usage:**\n```python\nimport scrublet as scr",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/doublet_detection.md",
+      "filename": "doublet_detection.md",
+      "file_type": ".md",
+      "file_size": 5486,
+      "title": "Doublet Detection in scRNA-seq Data",
+      "topic": "doublets",
+      "species": "general",
+      "methods": [
+        "scrublet",
+        "doubletfinder"
+      ]
+    },
+    "chunk_id": "doublet_detection_001",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/doublet_detection.md"
+  },
+  {
+    "content": "**Usage:**\n```python\nimport scrublet as scr\n\nscrub = scr.Scrublet(counts_matrix, expected_doublet_rate=0.06)\ndoublet_scores, predicted_doublets = scrub.scrub_doublets(min_counts=2, \n                                                          min_cells=3, \n                                                          min_gene_variability_pctl=85, \n                                                          n_prin_comps=30)\n```\n\n### DoubletFinder\n\nUses artificial nearest neighbors to identify doublets.\n\n**Advantages:**\n- High sensitivity\n- Can detect heterotypic doublets\n- Integrates well with Seurat workflow\n\n**Disadvantages:**\n- Requires more computational resources\n- Needs parameter optimization\n- Originally designed for Seurat/R\n\n## Best Practices\n\n### Pre-processing for Doublet Detection",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/doublet_detection.md",
+      "filename": "doublet_detection.md",
+      "file_type": ".md",
+      "file_size": 5486,
+      "title": "Doublet Detection in scRNA-seq Data",
+      "topic": "doublets",
+      "species": "general",
+      "methods": [
+        "scrublet",
+        "doubletfinder"
+      ]
+    },
+    "chunk_id": "doublet_detection_002",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/doublet_detection.md"
+  },
+  {
+    "content": "## Best Practices\n\n### Pre-processing for Doublet Detection\n\n1. **Minimal filtering before detection**\n   - Remove genes expressed in < 3 cells\n   - Remove cells with < 200 genes\n   - Don't apply strict QC yet\n\n2. **Normalization**\n   - Log-normalize for most methods\n   - Don't scale or center for Scrublet\n\n### Parameter Selection\n\n1. **Expected doublet rate**\n   - Use loading concentration guidelines\n   - 10X Chromium: typically 0.04-0.08\n   - Higher for dense samples\n\n2. **Threshold selection**\n   - Scrublet: Use automatic threshold or examine distribution\n   - Manual threshold based on biology knowledge\n   - Balance false positives vs false negatives\n\n### Interpretation",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/doublet_detection.md",
+      "filename": "doublet_detection.md",
+      "file_type": ".md",
+      "file_size": 5486,
+      "title": "Doublet Detection in scRNA-seq Data",
+      "topic": "doublets",
+      "species": "general",
+      "methods": [
+        "scrublet",
+        "doubletfinder"
+      ]
+    },
+    "chunk_id": "doublet_detection_003",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/doublet_detection.md"
+  },
+  {
+    "content": "### Interpretation\n\n1. **Doublet scores**\n   - Higher scores = more likely to be doublets\n   - Examine score distribution\n   - Look for bimodal distribution\n\n2. **Cluster-based validation**\n   - Doublets often form separate clusters\n   - High expression of markers from multiple cell types\n   - Intermediate gene expression profiles\n\n## Common Doublet Signatures\n\n### Transcriptional Doublets\n- Express markers from two distinct cell types\n- Example: T cell + B cell markers\n- Easy to detect with marker-based approaches\n\n### Homotypic Doublets\n- Two cells of the same type\n- Similar expression profile to singlets\n- Harder to detect, rely on total UMI count\n\n### Cell Cycle Doublets\n- Often in S/G2M phases\n- Higher total gene expression\n- May cluster separately from G1 cells",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/doublet_detection.md",
+      "filename": "doublet_detection.md",
+      "file_type": ".md",
+      "file_size": 5486,
+      "title": "Doublet Detection in scRNA-seq Data",
+      "topic": "doublets",
+      "species": "general",
+      "methods": [
+        "scrublet",
+        "doubletfinder"
+      ]
+    },
+    "chunk_id": "doublet_detection_004",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/doublet_detection.md"
+  },
+  {
+    "content": "## Integration with QC Workflow\n\n### Recommended Order:\n1. Basic gene/cell filtering\n2. Doublet detection\n3. Doublet removal\n4. Comprehensive QC filtering\n5. Normalization and downstream analysis\n\n### Rationale:\n- QC filtering can remove doublets naturally (high UMI count)\n- Doublet detection needs sufficient gene coverage\n- Some doublets may pass QC filters\n\n## Validation Steps\n\n1. **Visual inspection**\n   - UMAP/t-SNE colored by doublet scores\n   - Look for separated doublet clusters\n   - Check marker gene expression\n\n2. **Marker analysis**\n   - Doublets should express multiple cell type markers\n   - Use known marker genes for validation\n   - Check for co-expression of exclusive markers",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/doublet_detection.md",
+      "filename": "doublet_detection.md",
+      "file_type": ".md",
+      "file_size": 5486,
+      "title": "Doublet Detection in scRNA-seq Data",
+      "topic": "doublets",
+      "species": "general",
+      "methods": [
+        "scrublet",
+        "doubletfinder"
+      ]
+    },
+    "chunk_id": "doublet_detection_005",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/doublet_detection.md"
+  },
+  {
+    "content": "3. **Clustering validation**\n   - Doublets often form distinct clusters\n   - These clusters should be removed\n   - Verify remaining clusters are biologically meaningful\n\n## Species-Specific Considerations\n\n### Human\n- Higher baseline expression variability\n- More complex cell type landscapes\n- Consider tissue-specific markers\n\n### Mouse\n- Generally cleaner separation between cell types\n- Lower expression noise\n- Well-characterized marker genes\n\n## Troubleshooting\n\n### Low doublet detection\n- Check expected doublet rate parameter\n- Examine cell loading concentration\n- Verify sufficient gene coverage\n\n### High false positive rate\n- Lower detection threshold\n- Check for batch effects\n- Validate with known markers",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/doublet_detection.md",
+      "filename": "doublet_detection.md",
+      "file_type": ".md",
+      "file_size": 5486,
+      "title": "Doublet Detection in scRNA-seq Data",
+      "topic": "doublets",
+      "species": "general",
+      "methods": [
+        "scrublet",
+        "doubletfinder"
+      ]
+    },
+    "chunk_id": "doublet_detection_006",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/doublet_detection.md"
+  },
+  {
+    "content": "### Computational issues\n- Reduce simulation ratio for large datasets\n- Use random subsampling for very large datasets\n- Consider memory-efficient implementations\n\n## Advanced Considerations\n\n### Batch Effects\n- Run doublet detection per batch\n- Merge results carefully\n- Account for batch-specific doublet rates\n\n### Rare Cell Types\n- Doublets may mask rare populations\n- Be conservative with rare cell type removal\n- Validate with independent markers\n\n### Multi-sample Integration\n- Detect doublets before integration\n- Different samples may have different rates\n- Consider sample-specific thresholds",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/doublet_detection.md",
+      "filename": "doublet_detection.md",
+      "file_type": ".md",
+      "file_size": 5486,
+      "title": "Doublet Detection in scRNA-seq Data",
+      "topic": "doublets",
+      "species": "general",
+      "methods": [
+        "scrublet",
+        "doubletfinder"
+      ]
+    },
+    "chunk_id": "doublet_detection_007",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/doublet_detection.md"
+  },
+  {
+    "content": "# scQC Agent Knowledge Base\n\nThis directory contains curated knowledge for the scQC Agent's RAG system.\n\n## Contents\n\n- `qc_guidelines.md` - Quality control best practices and thresholds\n- `scanpy_qc_docs.md` - Scanpy QC function documentation\n- `doublet_detection.md` - Doublet detection methods and parameters\n- `batch_integration.md` - Batch correction and integration strategies\n- `graph_analysis.md` - Graph construction and clustering guidance\n- `workflows/` - Standard operating procedures\n- `thresholds/` - Species-specific and tissue-specific recommendations\n\n## Usage\n\nThe RAG system automatically ingests these documents and uses them to provide\ncontext-aware responses to user queries about scRNA-seq QC workflows.\n\n## Organization",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/README.md",
+      "filename": "README.md",
+      "file_type": ".md",
+      "file_size": 1019,
+      "title": "scQC Agent Knowledge Base"
+    },
+    "chunk_id": "README_000",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/README.md"
+  },
+  {
+    "content": "---\ntitle: \"Batch Correction and Integration with scVI\"\ntopic: \"integration\"\nspecies: \"general\"\nmethods: [\"scvi\", \"scanvi\", \"batch_correction\"]\n---\n\n# Batch Correction and Integration with scVI\n\n## Overview\n\nBatch effects are systematic technical differences between samples that can confound biological interpretation. scVI (single-cell Variational Inference) provides state-of-the-art batch correction while preserving biological signal.\n\n## Understanding Batch Effects\n\n### Sources of Batch Effects\n1. **Technical variation**\n   - Different sequencing runs\n   - Library preparation protocols\n   - Sample processing times\n   - Equipment differences\n\n2. **Biological confounding**\n   - Sample collection timing\n   - Storage conditions\n   - Patient/donor differences\n   - Tissue handling variations",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md",
+      "filename": "batch_integration.md",
+      "file_type": ".md",
+      "file_size": 7075,
+      "title": "Batch Correction and Integration with scVI",
+      "topic": "integration",
+      "species": "general",
+      "methods": [
+        "scvi",
+        "scanvi",
+        "batch_correction"
+      ]
+    },
+    "chunk_id": "batch_integration_000",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md"
+  },
+  {
+    "content": "### Identifying Batch Effects\n1. **Visual inspection**\n   - PCA plots colored by batch\n   - UMAP embeddings showing batch separation\n   - Mixing metrics (kBET, LISI)\n\n2. **Statistical tests**\n   - PERMANOVA on PC space\n   - Batch effect strength metrics\n   - Silhouette analysis\n\n## scVI Model Architecture\n\n### Variational Autoencoder Design\n- **Encoder**: Maps observations to latent space\n- **Decoder**: Reconstructs gene expression\n- **Batch variables**: Explicitly modeled as covariates\n- **Zero-inflation**: Handles dropouts in scRNA-seq data\n\n### Key Advantages\n1. **Probabilistic framework**: Uncertainty quantification\n2. **Scalability**: Handles millions of cells\n3. **Flexible**: Supports continuous and categorical covariates\n4. **Biologically informed**: Preserves cell type structure",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md",
+      "filename": "batch_integration.md",
+      "file_type": ".md",
+      "file_size": 7075,
+      "title": "Batch Correction and Integration with scVI",
+      "topic": "integration",
+      "species": "general",
+      "methods": [
+        "scvi",
+        "scanvi",
+        "batch_correction"
+      ]
+    },
+    "chunk_id": "batch_integration_001",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md"
+  },
+  {
+    "content": "## Model Parameters\n\n### Architecture Parameters\n- `n_latent`: Latent space dimensions (default: 10-30)\n  - Smaller for simpler datasets\n  - Larger for complex, heterogeneous data\n  - Balance between information and overfitting\n\n- `n_layers`: Number of hidden layers (default: 1-2)\n  - More layers for complex datasets\n  - Risk of overfitting with too many\n\n- `n_hidden`: Hidden layer size (default: 128)\n  - Scale with dataset complexity\n  - Computational cost consideration\n\n### Training Parameters\n- `max_epochs`: Training epochs (default: 200-400)\n  - Monitor convergence\n  - Early stopping recommended\n  - More epochs for large datasets\n\n- `batch_size`: Mini-batch size (default: 128)\n  - Balance memory and convergence\n  - Larger batches for stable training",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md",
+      "filename": "batch_integration.md",
+      "file_type": ".md",
+      "file_size": 7075,
+      "title": "Batch Correction and Integration with scVI",
+      "topic": "integration",
+      "species": "general",
+      "methods": [
+        "scvi",
+        "scanvi",
+        "batch_correction"
+      ]
+    },
+    "chunk_id": "batch_integration_002",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md"
+  },
+  {
+    "content": "- `learning_rate`: Optimizer learning rate (default: 1e-3)\n  - Lower for fine-tuning\n  - Higher for initial training\n\n## Integration Workflow\n\n### 1. Preprocessing\n```python\n# Minimal preprocessing for scVI\nsc.pp.filter_genes(adata, min_cells=10)\nsc.pp.filter_cells(adata, min_genes=200)\n\n# Store raw counts\nadata.raw = adata\n\n# Select highly variable genes\nsc.pp.highly_variable_genes(adata, n_top_genes=4000, batch_key='batch')\nadata = adata[:, adata.var.highly_variable]\n```\n\n### 2. Model Setup\n```python\nimport scvi\n\nscvi.model.SCVI.setup_anndata(\n    adata,\n    layer=None,  # Use X matrix\n    batch_key='batch',\n    continuous_covariate_keys=['total_counts', 'n_genes_by_counts'],\n    categorical_covariate_keys=['sample_type']\n)\n```",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md",
+      "filename": "batch_integration.md",
+      "file_type": ".md",
+      "file_size": 7075,
+      "title": "Batch Correction and Integration with scVI",
+      "topic": "integration",
+      "species": "general",
+      "methods": [
+        "scvi",
+        "scanvi",
+        "batch_correction"
+      ]
+    },
+    "chunk_id": "batch_integration_003",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md"
+  },
+  {
+    "content": "### 3. Model Training\n```python\nmodel = scvi.model.SCVI(adata, n_latent=30, n_layers=2)\n\n# Train with early stopping\nmodel.train(\n    max_epochs=400,\n    early_stopping=True,\n    early_stopping_patience=20,\n    early_stopping_min_delta=0.5\n)\n```\n\n### 4. Latent Representation\n```python\n# Get integrated latent representation\nlatent = model.get_latent_representation()\nadata.obsm['X_scVI'] = latent\n\n# Optional: Get normalized expression\nadata.layers['scvi_normalized'] = model.get_normalized_expression()\n```\n\n## Quality Assessment\n\n### Integration Metrics\n1. **kBET (k-nearest neighbor Batch Effect Test)**\n   - Measures batch mixing\n   - Values closer to 1 indicate better mixing\n   - Can be computed on latent space",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md",
+      "filename": "batch_integration.md",
+      "file_type": ".md",
+      "file_size": 7075,
+      "title": "Batch Correction and Integration with scVI",
+      "topic": "integration",
+      "species": "general",
+      "methods": [
+        "scvi",
+        "scanvi",
+        "batch_correction"
+      ]
+    },
+    "chunk_id": "batch_integration_004",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md"
+  },
+  {
+    "content": "2. **LISI (Local Inverse Simpson's Index)**\n   - Integration LISI: measures mixing\n   - Cell type LISI: measures preservation\n   - Balance between the two metrics\n\n3. **Silhouette scores**\n   - Batch silhouette (should be low)\n   - Cell type silhouette (should be high)\n\n### Visual Assessment\n```python\n# UMAP on integrated data\nsc.pp.neighbors(adata, use_rep='X_scVI')\nsc.tl.umap(adata)\n\n# Plot by batch and cell type\nsc.pl.umap(adata, color=['batch', 'cell_type'])\n```\n\n## Best Practices\n\n### Model Selection\n1. **Latent dimensions**\n   - Start with 10-30 dimensions\n   - Increase for very heterogeneous data\n   - Monitor reconstruction quality\n\n2. **Covariate inclusion**\n   - Include known batch variables\n   - Add continuous covariates (total counts)\n   - Don't over-parametrize",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md",
+      "filename": "batch_integration.md",
+      "file_type": ".md",
+      "file_size": 7075,
+      "title": "Batch Correction and Integration with scVI",
+      "topic": "integration",
+      "species": "general",
+      "methods": [
+        "scvi",
+        "scanvi",
+        "batch_correction"
+      ]
+    },
+    "chunk_id": "batch_integration_005",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md"
+  },
+  {
+    "content": "### Training Strategies\n1. **Early stopping**\n   - Monitor training/validation loss\n   - Stop when validation loss plateaus\n   - Prevents overfitting\n\n2. **Learning rate scheduling**\n   - Start with default (1e-3)\n   - Reduce if training is unstable\n   - Use learning rate schedulers\n\n### Validation\n1. **Hold-out validation**\n   - Reserve samples for testing\n   - Assess generalization\n   - Cross-validation for small datasets\n\n2. **Biological validation**\n   - Check marker gene preservation\n   - Validate known cell type relationships\n   - Compare to unintegrated analysis\n\n## Common Issues and Solutions\n\n### Poor Integration\n**Symptoms:**\n- Batch clusters remain separated\n- Low mixing metrics",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md",
+      "filename": "batch_integration.md",
+      "file_type": ".md",
+      "file_size": 7075,
+      "title": "Batch Correction and Integration with scVI",
+      "topic": "integration",
+      "species": "general",
+      "methods": [
+        "scvi",
+        "scanvi",
+        "batch_correction"
+      ]
+    },
+    "chunk_id": "batch_integration_006",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md"
+  },
+  {
+    "content": "### Poor Integration\n**Symptoms:**\n- Batch clusters remain separated\n- Low mixing metrics\n\n**Solutions:**\n- Increase latent dimensions\n- Add more training epochs\n- Include additional batch covariates\n- Check for poor quality samples\n\n### Over-integration\n**Symptoms:**\n- Loss of cell type structure\n- Artificially merged cell types\n- High cell type mixing metrics\n\n**Solutions:**\n- Reduce latent dimensions\n- Shorter training\n- Remove some batch covariates\n- Use batch-aware clustering\n\n### Computational Issues\n**Symptoms:**\n- Out of memory errors\n- Very slow training\n\n**Solutions:**\n- Reduce batch size\n- Use GPU acceleration\n- Subsample for parameter tuning\n- Consider approximate methods\n\n## Advanced Features",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md",
+      "filename": "batch_integration.md",
+      "file_type": ".md",
+      "file_size": 7075,
+      "title": "Batch Correction and Integration with scVI",
+      "topic": "integration",
+      "species": "general",
+      "methods": [
+        "scvi",
+        "scanvi",
+        "batch_correction"
+      ]
+    },
+    "chunk_id": "batch_integration_007",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md"
+  },
+  {
+    "content": "## Advanced Features\n\n### scANVI (semi-supervised)\n- Incorporates cell type labels\n- Better preservation of known structure\n- Useful when some labels available\n\n### Multi-batch Integration\n- Handle multiple batch variables\n- Hierarchical batch structure\n- Complex experimental designs\n\n### Transfer Learning\n- Pre-trained models on similar data\n- Fine-tuning for new datasets\n- Reduced training time\n\n## Species and Tissue Considerations\n\n### Human vs Mouse\n- Human: more genetic diversity\n- Mouse: more standardized conditions\n- Adjust parameters accordingly\n\n### Tissue-specific Challenges\n- Brain: high cellular diversity\n- Blood: dynamic cell states\n- Solid tumors: high heterogeneity\n\n## Downstream Analysis",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md",
+      "filename": "batch_integration.md",
+      "file_type": ".md",
+      "file_size": 7075,
+      "title": "Batch Correction and Integration with scVI",
+      "topic": "integration",
+      "species": "general",
+      "methods": [
+        "scvi",
+        "scanvi",
+        "batch_correction"
+      ]
+    },
+    "chunk_id": "batch_integration_008",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md"
+  },
+  {
+    "content": "## Downstream Analysis\n\n### Clustering\n```python\n# Use integrated representation\nsc.pp.neighbors(adata, use_rep='X_scVI')\nsc.tl.leiden(adata, resolution=0.5)\n```\n\n### Differential Expression\n```python\n# scVI provides DE testing\nde_results = model.differential_expression(\n    groupby='cell_type',\n    group1='T_cells',\n    group2='B_cells'\n)\n```\n\n### Trajectory Analysis\n- Use integrated latent space\n- Preserve batch-corrected dynamics\n- Validate with known trajectories",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md",
+      "filename": "batch_integration.md",
+      "file_type": ".md",
+      "file_size": 7075,
+      "title": "Batch Correction and Integration with scVI",
+      "topic": "integration",
+      "species": "general",
+      "methods": [
+        "scvi",
+        "scanvi",
+        "batch_correction"
+      ]
+    },
+    "chunk_id": "batch_integration_009",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/batch_integration.md"
+  },
+  {
+    "content": "---\ntitle: \"Standard QC Workflow SOP\"\ntopic: \"workflow\"\nspecies: \"general\"\nworkflow_type: \"quality_control\"\n---\n\n# Standard Quality Control Workflow\n\n## Overview\n\nThis document outlines the full standard operating procedure for quality control in scRNA-seq analysis using the scQC Agent. When asked for a complete workflow, this is how the process should proceed: steps 1-15. Individual steps can be executed independently as requested.\n\n\n## Workflow Steps\n\n### 1. Data Loading and Initial Assessment\n```bash\nload_data with file_path parameter\n```\n\n**Purpose:** \n- Initialize session tracking\n- Load raw count matrix\n- Assess initial data dimensions\n\n**Expected output:**\n- Session state with data path\n- Initial cell and gene counts\n- Data format validation",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md",
+      "filename": "standard_qc_workflow.md",
+      "file_type": ".md",
+      "file_size": 6964,
+      "title": "Standard Quality Control Workflow",
+      "topic": "quality_control",
+      "species": "general",
+      "workflow_type": "quality_control"
+    },
+    "chunk_id": "standard_qc_workflow_000",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md"
+  },
+  {
+    "content": "### 2. Ambient RNA Removal (scAR)\n``` bash\nscqc scar run\n```\n**Purpose:**\n- Writes ambient profile to adata.uns\n- Writes denoised counts to layers['scar_denoised']\n- snapshots step_ambient/.\n\n### 3. QC Metrics Calculation\n```bash\nscqc qc compute --species human\n```\n\n**Purpose:**\n- Calculate per-cell and per-gene metrics\n- Identify mitochondrial and ribosomal genes\n- Compute percentage metrics\n\n**Key metrics computed:**\n- Total UMI counts per cell\n- Number of genes per cell\n- Mitochondrial percentage\n- Ribosomal percentage\n- Per-gene expression statistics\n\n### 4. QC Visualization (Pre-filtering)\n```bash\nscqc qc plot --stage pre\n```\n\n**Purpose:**\n- Visualize QC metric distributions\n- Identify outliers and thresholds\n- Check for batch effects",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md",
+      "filename": "standard_qc_workflow.md",
+      "file_type": ".md",
+      "file_size": 6964,
+      "title": "Standard Quality Control Workflow",
+      "topic": "quality_control",
+      "species": "general",
+      "workflow_type": "quality_control"
+    },
+    "chunk_id": "standard_qc_workflow_001",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md"
+  },
+  {
+    "content": "**Generated plots:**\n- Violin plots of QC metrics\n- Scatter plots (genes vs counts)\n- Distribution histograms\n- Batch comparison plots\n\n### 5. Threshold Determination\n\n**Manual approach:**\n- Examine QC plots\n- Set biologically reasonable thresholds\n- Consider tissue and species-specific norms\n\n**Automatic approach:**\n- Use MAD-based thresholds\n- Apply percentile-based filters\n- Leverage prior knowledge\n\n**Common thresholds:**\n- Min genes per cell: 200-500\n- Max mitochondrial %: 15-25%\n- Min cells per gene: 3-10\n\n### 6. Apply QC Filters\n```bash\nscqc qc apply --min-genes 200 --max-pct-mt 20 --method threshold\n```\n\n**Purpose:**\n- Remove low-quality cells and genes\n- Apply determined thresholds\n- Create filtered dataset",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md",
+      "filename": "standard_qc_workflow.md",
+      "file_type": ".md",
+      "file_size": 6964,
+      "title": "Standard Quality Control Workflow",
+      "topic": "quality_control",
+      "species": "general",
+      "workflow_type": "quality_control"
+    },
+    "chunk_id": "standard_qc_workflow_002",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md"
+  },
+  {
+    "content": "**Filtering criteria:**\n- Cell-level filters (genes, MT%, counts)\n- Gene-level filters (expression, prevalence)\n- Outlier removal\n\n### 7. QC Visualization (Post-filtering)\n```bash\nscqc qc plot --stage post\n```\n\n**Purpose:**\n- Validate filtering results\n- Compare pre- and post-filtering distributions\n- Ensure adequate cell retention\n\n**Quality checks:**\n- Retained cell count (>80% typically)\n- Distribution normalization\n- Batch effect persistence\n\n### 8. Double Detection and Removal\n```bash\nscqc doublets detect --method scrublet\nscqc doublets apply --threshold <t>\n```\n**Purpose:**\n- Records obs['doublet_score'] and obs['predicted_doublet']\n- Removes predicted doubles\n- Creates snapshop",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md",
+      "filename": "standard_qc_workflow.md",
+      "file_type": ".md",
+      "file_size": 6964,
+      "title": "Standard Quality Control Workflow",
+      "topic": "quality_control",
+      "species": "general",
+      "workflow_type": "quality_control"
+    },
+    "chunk_id": "standard_qc_workflow_003",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md"
+  },
+  {
+    "content": "### 9. QC Plots (Post-Filter #2)\n```bash\nscqc qc plot --stage post\n```\n**Purpose:**\n- Ensure counts ratained are reported\n\n### 10. Normalize -> Log -> HVG \n\n\n### 11. Quick Graph Analysis\n```bash\nscqc graph quick --seed 42 --resolution 0.5\n```\n**Purpose:**\n- Initial dimensionality reduction\n- Preliminary clustering\n- Quality assessment visualization\n\n**Analysis steps:**\n- PCA computation\n- Neighbor graph construction\n- UMAP embedding\n- Leiden clustering\n\n### 12. Batch Correction (choose one)\n- A. scVI: \n```bash\nscqc scvi run\n```\n    - uses counts; outputs obsm['X_scVI'].\n- B. scAR (denoising): \n```bash\nscqc scar run\n```\n- make sure to be explicit which representation downstream will use.",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md",
+      "filename": "standard_qc_workflow.md",
+      "file_type": ".md",
+      "file_size": 6964,
+      "title": "Standard Quality Control Workflow",
+      "topic": "quality_control",
+      "species": "general",
+      "workflow_type": "quality_control"
+    },
+    "chunk_id": "standard_qc_workflow_004",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md"
+  },
+  {
+    "content": "### 13. Final Graph and Clustering\n- pck represetation (use_rep = X_scVI or X_scar (latent))\n```bash\nscqc graph from-rep X_scVI --n-neighbors 15 --resolution 0.6\n# OR\nscqc graph final --use-rep X_scVI --n-neighbors 15 --resolution 0.6\n```\n**Purpose:**\n- Recompute neighbors after correction on the chosen representation (don’t reuse quick graph)\n\n### 14. Batch Diagnostics\n```bash\n# Through agent planning - no direct CLI yet\nscqc chat \"run batch diagnostics on X_scVI embedding\"\n```\n**Purpose:**\n- Assess batch integration quality using scib-metrics\n- Compute kBET, iLISI, cLISI, graph connectivity\n- Generate diagnostic plots and save results\n\n\n### 15. Results Summary\n```bash\nscqc summary\n```\n\n**Purpose:**\n- Document QC results\n- Record filtering decisions\n- Track artifacts generated",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md",
+      "filename": "standard_qc_workflow.md",
+      "file_type": ".md",
+      "file_size": 6964,
+      "title": "Standard Quality Control Workflow",
+      "topic": "quality_control",
+      "species": "general",
+      "workflow_type": "quality_control"
+    },
+    "chunk_id": "standard_qc_workflow_005",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md"
+  },
+  {
+    "content": "**Purpose:**\n- Document QC results\n- Record filtering decisions\n- Track artifacts generated\n\n## Quality Gates\n\n### Minimum Requirements\n- At least 80% cell retention after filtering\n- Clear separation in QC metric distributions\n- Reasonable mitochondrial percentages\n- Adequate gene coverage per cell\n\n### Warning Signs\n- Extreme cell loss (>50%)\n- Bimodal distributions suggesting doublets\n- High mitochondrial percentages across samples\n- Very low gene counts per cell\n\n### Failure Criteria\n- <50% cell retention\n- No clear QC thresholds\n- Systematic quality issues\n- Technical failure indicators\n\n## Species-Specific Guidelines\n\n### Human Samples\n```bash\n# Standard human parameters\nscqc qc compute --species human --mito-prefix MT-\nscqc qc apply --min-genes 250 --max-pct-mt 20\n```",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md",
+      "filename": "standard_qc_workflow.md",
+      "file_type": ".md",
+      "file_size": 6964,
+      "title": "Standard Quality Control Workflow",
+      "topic": "quality_control",
+      "species": "general",
+      "workflow_type": "quality_control"
+    },
+    "chunk_id": "standard_qc_workflow_006",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md"
+  },
+  {
+    "content": "**Typical thresholds:**\n- Min genes: 250-500\n- Max MT%: 15-25%\n- Min cells per gene: 3\n\n### Mouse Samples\n```bash\n# Standard mouse parameters\nscqc qc compute --species mouse --mito-prefix mt-\nscqc qc apply --min-genes 200 --max-pct-mt 15\n```\n\n**Typical thresholds:**\n- Min genes: 200-400\n- Max MT%: 10-20%\n- Min cells per gene: 3\n\n## Troubleshooting\n\n### High Mitochondrial Content\n**Possible causes:**\n- Cell stress or death\n- Tissue dissociation artifacts\n- Sample degradation\n\n**Solutions:**\n- Relax MT% threshold slightly\n- Check sample preparation protocol\n- Consider tissue-specific norms\n\n### Low Gene Detection\n**Possible causes:**\n- Poor RNA capture efficiency\n- Low cell viability\n- Technical issues",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md",
+      "filename": "standard_qc_workflow.md",
+      "file_type": ".md",
+      "file_size": 6964,
+      "title": "Standard Quality Control Workflow",
+      "topic": "quality_control",
+      "species": "general",
+      "workflow_type": "quality_control"
+    },
+    "chunk_id": "standard_qc_workflow_007",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md"
+  },
+  {
+    "content": "**Solutions:**\n- Lower min_genes threshold\n- Check library preparation\n- Validate with control samples\n\n### Extreme Cell Loss\n**Possible causes:**\n- Too stringent thresholds\n- Poor sample quality\n- Batch effects\n\n**Solutions:**\n- Use MAD-based adaptive thresholds\n- Examine per-batch QC metrics\n- Consider sample-specific filtering\n\n## Documentation Requirements\n\n### Session Records\n- Parameter choices and rationale\n- Number of cells/genes before and after filtering\n- QC threshold justification\n- Generated artifacts and plots\n\n### Quality Assessment\n- QC metric distributions\n- Filtering effectiveness\n- Batch effect evaluation\n- Known marker gene expression\n\n## Next Steps",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md",
+      "filename": "standard_qc_workflow.md",
+      "file_type": ".md",
+      "file_size": 6964,
+      "title": "Standard Quality Control Workflow",
+      "topic": "quality_control",
+      "species": "general",
+      "workflow_type": "quality_control"
+    },
+    "chunk_id": "standard_qc_workflow_008",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md"
+  },
+  {
+    "content": "## Next Steps\n\nAfter successful QC:\n1. Proceed to normalization and scaling\n2. Highly variable gene selection\n3. Dimensionality reduction (PCA)\n4. Batch correction if needed (scVI)\n5. Graph analysis and clustering\n6. Cell type annotation\n\n## Best Practices\n\n1. **Always visualize before filtering**\n2. **Document all parameter choices**\n3. **Consider biological context**\n4. **Validate with known markers**\n5. **Preserve session state**\n6. **Generate comprehensive reports**",
+    "metadata": {
+      "source": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md",
+      "filename": "standard_qc_workflow.md",
+      "file_type": ".md",
+      "file_size": 6964,
+      "title": "Standard Quality Control Workflow",
+      "topic": "quality_control",
+      "species": "general",
+      "workflow_type": "quality_control"
+    },
+    "chunk_id": "standard_qc_workflow_009",
+    "source_file": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/kb/workflows/standard_qc_workflow.md"
+  }
+]

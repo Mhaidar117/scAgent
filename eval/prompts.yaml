@@ -1,0 +1,319 @@
+# Golden prompts for scQC Agent evaluation
+# Each prompt tests specific functionality and includes acceptance criteria
+
+prompts:
+  # Basic QC workflow
+  - id: basic_qc_workflow
+    description: "Basic QC metrics computation and filtering"
+    prompt: "Load the test data, compute QC metrics for mouse data, and apply standard filters with min_genes=1000 and max_pct_mt=15"
+    acceptance_criteria:
+      - adata_loaded: true
+      - qc_metrics_computed: true
+      - filters_applied: true
+      - retained_fraction_min: 0.3
+      - retained_fraction_max: 0.95
+      - artifacts_generated: ["qc_summary.csv", "qc_pre_violins.png", "qc_post_violins.png"]
+    tags: ["qc", "basic", "filtering"]
+
+  - id: human_qc_workflow
+    description: "QC workflow for human data"
+    prompt: "Compute QC metrics for human data with MT- prefix and apply filters with min_genes=1200 and max_pct_mt=12"
+    acceptance_criteria:
+      - species_detected: "human"
+      - mito_prefix_used: "MT-"
+      - qc_metrics_computed: true
+      - filters_applied: true
+      - retained_fraction_min: 0.2
+      - retained_fraction_max: 0.9
+    tags: ["qc", "human", "species"]
+
+  - id: strict_qc_filtering
+    description: "Strict QC filtering parameters"
+    prompt: "Apply very strict QC filters: min_genes=2000, max_pct_mt=8, method=threshold"
+    acceptance_criteria:
+      - filters_applied: true
+      - retained_fraction_min: 0.1
+      - retained_fraction_max: 0.7
+      - filter_method: "threshold"
+    tags: ["qc", "strict", "filtering"]
+
+  - id: lenient_qc_filtering
+    description: "Lenient QC filtering parameters"
+    prompt: "Apply lenient QC filters: min_genes=500, max_pct_mt=25"
+    acceptance_criteria:
+      - filters_applied: true
+      - retained_fraction_min: 0.6
+      - retained_fraction_max: 1.0
+    tags: ["qc", "lenient", "filtering"]
+
+  # Graph analysis
+  - id: quick_graph_analysis
+    description: "Quick graph analysis with PCA and clustering"
+    prompt: "Perform quick graph analysis with 30 PCs, 20 neighbors, and resolution 0.8"
+    acceptance_criteria:
+      - pca_computed: true
+      - neighbors_computed: true
+      - umap_computed: true
+      - clustering_computed: true
+      - n_clusters_min: 3
+      - n_clusters_max: 20
+      - connectivity_rate_min: 5.0
+      - artifacts_generated: ["umap_pre.png", "cluster_counts.csv"]
+    tags: ["graph", "pca", "clustering"]
+
+  - id: high_resolution_clustering
+    description: "High resolution clustering"
+    prompt: "Run graph analysis with high resolution clustering: resolution=2.0"
+    acceptance_criteria:
+      - clustering_computed: true
+      - n_clusters_min: 8
+      - n_clusters_max: 50
+      - clustering_resolution: 2.0
+    tags: ["graph", "clustering", "high_resolution"]
+
+  - id: low_resolution_clustering
+    description: "Low resolution clustering"
+    prompt: "Run graph analysis with low resolution clustering: resolution=0.3"
+    acceptance_criteria:
+      - clustering_computed: true
+      - n_clusters_min: 2
+      - n_clusters_max: 8
+      - clustering_resolution: 0.3
+    tags: ["graph", "clustering", "low_resolution"]
+
+  # scVI integration
+  - id: scvi_latent_basic
+    description: "Basic scVI latent representation"
+    prompt: "Train scVI model with 20 latent dimensions and 50 epochs"
+    acceptance_criteria:
+      - scvi_trained: true
+      - latent_dims: 20
+      - epochs_run: 50
+      - latent_representation_key: "X_scVI"
+      - training_completed: true
+    tags: ["scvi", "latent", "basic"]
+    optional: true  # Requires models extra
+
+  - id: scvi_high_dims
+    description: "High dimensional scVI latent space"
+    prompt: "Train scVI with 50 latent dimensions for better representation"
+    acceptance_criteria:
+      - scvi_trained: true
+      - latent_dims: 50
+      - latent_representation_key: "X_scVI"
+    tags: ["scvi", "latent", "high_dims"]
+    optional: true
+
+  - id: scvi_graph_analysis
+    description: "Graph analysis from scVI representation"
+    prompt: "Create graph analysis using X_scVI representation with 15 neighbors"
+    acceptance_criteria:
+      - graph_from_scvi: true
+      - use_rep: "X_scVI"
+      - neighbors_computed: true
+      - umap_computed: true
+      - clustering_computed: true
+    tags: ["scvi", "graph", "latent"]
+    optional: true
+
+  # Doublet detection
+  - id: doublet_detection_basic
+    description: "Basic doublet detection"
+    prompt: "Detect doublets using scrublet with default parameters"
+    acceptance_criteria:
+      - doublets_detected: true
+      - doublet_scores_computed: true
+      - doublet_threshold_set: true
+      - predicted_doublets_min: 0
+      - predicted_doublets_max: 0.3  # Should be <30% of cells
+    tags: ["doublets", "detection", "scrublet"]
+
+  - id: doublet_detection_strict
+    description: "Strict doublet detection"
+    prompt: "Detect doublets with strict threshold: expected_doublet_rate=0.1"
+    acceptance_criteria:
+      - doublets_detected: true
+      - expected_doublet_rate: 0.1
+      - predicted_doublets_max: 0.15
+    tags: ["doublets", "detection", "strict"]
+
+  - id: doublet_filtering
+    description: "Apply doublet filtering"
+    prompt: "Remove detected doublets from the dataset"
+    acceptance_criteria:
+      - doublets_removed: true
+      - retained_fraction_min: 0.7
+      - retained_fraction_max: 1.0
+      - artifacts_generated: ["doublet_scores.png", "barplot_removed_by_batch.png"]
+    tags: ["doublets", "filtering"]
+
+  # Final workflow steps
+  - id: final_graph_scvi
+    description: "Final graph analysis with scVI"
+    prompt: "Create final graph using X_scVI representation with resolution 1.2"
+    acceptance_criteria:
+      - final_graph_computed: true
+      - use_rep: "X_scVI"
+      - clustering_resolution: 1.2
+      - artifacts_generated: ["umap_final.png", "cluster_counts_final.csv"]
+    tags: ["final", "graph", "scvi"]
+    optional: true
+
+  - id: final_graph_pca
+    description: "Final graph analysis with PCA"
+    prompt: "Create final graph using X_pca representation as fallback"
+    acceptance_criteria:
+      - final_graph_computed: true
+      - use_rep: "X_pca"
+      - clustering_computed: true
+      - umap_computed: true
+    tags: ["final", "graph", "pca"]
+
+  # Parameter tuning
+  - id: tune_min_genes_conservative
+    description: "Conservative gene count threshold"
+    prompt: "Adjust QC filters to be more conservative: increase min_genes to 1500"
+    acceptance_criteria:
+      - filters_applied: true
+      - min_genes_threshold: 1500
+      - retained_fraction_min: 0.2
+      - retained_fraction_max: 0.8
+    tags: ["tuning", "conservative", "genes"]
+
+  - id: tune_min_genes_liberal
+    description: "Liberal gene count threshold"
+    prompt: "Adjust QC filters to be more liberal: decrease min_genes to 800"
+    acceptance_criteria:
+      - filters_applied: true
+      - min_genes_threshold: 800
+      - retained_fraction_min: 0.5
+      - retained_fraction_max: 1.0
+    tags: ["tuning", "liberal", "genes"]
+
+  - id: tune_mt_threshold
+    description: "Mitochondrial threshold tuning"
+    prompt: "Fine-tune mitochondrial threshold to max_pct_mt=18 for this dataset"
+    acceptance_criteria:
+      - filters_applied: true
+      - max_pct_mt_threshold: 18
+      - retained_fraction_min: 0.3
+      - retained_fraction_max: 0.95
+    tags: ["tuning", "mitochondrial", "threshold"]
+
+  # Batch integration scenarios
+  - id: batch_aware_qc
+    description: "Batch-aware QC analysis"
+    prompt: "Compute QC metrics with batch-specific summaries using batch column"
+    acceptance_criteria:
+      - qc_metrics_computed: true
+      - batch_analysis: true
+      - per_batch_summary_generated: true
+    tags: ["batch", "qc", "integration"]
+
+  - id: batch_specific_filtering
+    description: "Batch-specific filtering"
+    prompt: "Apply different QC thresholds per batch if batch effects are detected"
+    acceptance_criteria:
+      - batch_aware_filtering: true
+      - filters_applied: true
+    tags: ["batch", "filtering", "adaptive"]
+
+  # Error handling and edge cases
+  - id: insufficient_cells
+    description: "Handle datasets with very few cells"
+    prompt: "Analyze dataset with fewer than 50 cells"
+    acceptance_criteria:
+      - error_handled_gracefully: true
+      - meaningful_error_message: true
+    tags: ["edge_case", "small_dataset", "error_handling"]
+
+  - id: high_mt_content
+    description: "Handle high mitochondrial content"
+    prompt: "Process dataset where many cells have >50% mitochondrial content"
+    acceptance_criteria:
+      - quality_gate_triggered: true
+      - warning_issued: true
+      - processing_continues: true
+    tags: ["edge_case", "quality_gate", "mitochondrial"]
+
+  - id: missing_features
+    description: "Handle missing gene features"
+    prompt: "Process data with some missing standard features"
+    acceptance_criteria:
+      - error_handled_gracefully: true
+      - fallback_method_used: true
+    tags: ["edge_case", "missing_data", "robustness"]
+
+  # Reproducibility tests
+  - id: reproducible_clustering
+    description: "Reproducible clustering with fixed seed"
+    prompt: "Run clustering analysis twice with seed=42 and verify identical results"
+    acceptance_criteria:
+      - clustering_reproducible: true
+      - seed_respected: true
+      - identical_results: true
+    tags: ["reproducibility", "clustering", "seed"]
+
+  - id: reproducible_scvi
+    description: "Reproducible scVI training"
+    prompt: "Train scVI model twice with same parameters and verify similar results"
+    acceptance_criteria:
+      - scvi_reproducible: true
+      - training_converged: true
+      - similar_latent_space: true
+    tags: ["reproducibility", "scvi", "training"]
+    optional: true
+
+  # Performance and memory
+  - id: large_dataset_handling
+    description: "Handle moderately large datasets efficiently"
+    prompt: "Process dataset with >10,000 cells efficiently"
+    acceptance_criteria:
+      - processing_completed: true
+      - memory_usage_reasonable: true
+      - runtime_reasonable: true
+    tags: ["performance", "large_dataset", "efficiency"]
+
+  - id: memory_efficient_processing
+    description: "Memory-efficient processing mode"
+    prompt: "Process data with memory-efficient settings when possible"
+    acceptance_criteria:
+      - processing_completed: true
+      - memory_optimized: true
+    tags: ["performance", "memory", "optimization"]
+
+# Test configuration
+test_config:
+  # Default test dataset parameters
+  default_dataset:
+    n_cells: 3000
+    n_genes: 2000
+    species: "mouse"
+    has_batch: false
+    
+  # Small dataset for quick tests
+  small_dataset:
+    n_cells: 100
+    n_genes: 500
+    species: "mouse"
+    has_batch: false
+    
+  # Batch dataset for integration tests
+  batch_dataset:
+    n_cells: 2000
+    n_genes: 1500
+    species: "human"
+    has_batch: true
+    n_batches: 3
+
+  # Test timeouts (seconds)
+  timeouts:
+    basic_tests: 30
+    scvi_tests: 300
+    large_dataset_tests: 600
+    
+  # Pass criteria
+  pass_thresholds:
+    overall_pass_rate: 0.95  # 95% of tests must pass
+    core_functionality_pass_rate: 1.0  # 100% of core tests must pass
+    optional_pass_rate: 0.8  # 80% of optional tests must pass

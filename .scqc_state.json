@@ -1,0 +1,66 @@
+{
+  "run_id": "run_20250929_141732",
+  "history": [
+    {
+      "step": 0,
+      "label": "initial_load",
+      "data_path": "Data_files/s41593_preprocessed.h5ad.gz",
+      "checkpoint_path": "runs/run_20250929_141732/step_00_initial_load/adata_step00.h5ad",
+      "timestamp": "2025-09-29T14:17:35.205464",
+      "artifacts": [
+        {
+          "path": "runs/run_20250929_141732/qc_plots/qc_violin_pre.png",
+          "label": "QC Violin Plot (pre)",
+          "timestamp": "2025-09-29T14:19:04.747686"
+        },
+        {
+          "path": "runs/run_20250929_141732/qc_plots/qc_violin_post.png",
+          "label": "QC Violin Plot (post)",
+          "timestamp": "2025-09-29T14:19:37.481563"
+        }
+      ]
+    },
+    {
+      "step": 1,
+      "label": "initial_load",
+      "data_path": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/Data_files/s41593_preprocessed.h5ad.gz",
+      "checkpoint_path": "runs/run_20250929_141732/step_01_initial_load/adata_step01.h5ad",
+      "timestamp": "2025-09-29T19:16:01.324725",
+      "artifacts": []
+    }
+  ],
+  "adata_path": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/Data_files/s41593_preprocessed.h5ad.gz",
+  "artifacts": {
+    "runs/run_20250929_141732/qc_plots/qc_violin_pre.png": "QC Violin Plot (pre)",
+    "runs/run_20250929_141732/qc_plots/qc_violin_post.png": "QC Violin Plot (post)"
+  },
+  "metadata": {
+    "adata_path": "/Users/michaelhaidar/Documents/Vanderbilt/Brain_Research/scAgent/Data_files/s41593_preprocessed.h5ad.gz",
+    "dataset_summary": {
+      "qc_computed": true,
+      "species": "mouse",
+      "n_mito_genes": 13,
+      "qc_metrics": {
+        "n_genes_by_counts": {
+          "mean": 2791.7422358547406,
+          "median": 2491.0,
+          "std": 1410.5356131597925
+        },
+        "total_counts": {
+          "mean": 6102.22021484375,
+          "median": 4472.0,
+          "std": 5575.3701171875
+        },
+        "pct_counts_mt": {
+          "mean": 4.6057281494140625,
+          "median": 4.342453479766846,
+          "std": 2.085767984390259
+        }
+      }
+    },
+    "qc_plots_generated": true
+  },
+  "dataset_summary": {},
+  "created_at": "2025-09-29T14:17:32.610239",
+  "updated_at": "2025-09-29T19:16:01.324777"
+}

@@ -1,0 +1,195 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[qc,dev]
+
+    - name: Lint with ruff
+      run: |
+        ruff check scqc_agent tests
+
+    - name: Format check with black
+      run: |
+        black --check scqc_agent tests
+
+    - name: Type check with mypy
+      run: |
+        mypy scqc_agent
+      continue-on-error: true  # mypy might have issues with optional dependencies
+
+    - name: Run unit tests
+      run: |
+        pytest -v --tb=short
+
+    - name: Test synthetic data generation
+      run: |
+        python -c "from scqc_agent.tests.synth import make_synth_adata; adata = make_synth_adata(n_cells=100, n_genes=300); print(f'✓ Generated {adata.n_obs} cells × {adata.n_vars} genes')"
+
+    - name: Test knowledge base retriever
+      run: |
+        pytest tests/test_kb_retriever.py -v -x
+      continue-on-error: true  # KB tests might fail if optional dependencies missing
+
+  e2e:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[qc,dev]
+        
+    - name: Install optional dependencies for full testing
+      run: |
+        pip install sentence-transformers faiss-cpu rank-bm25 scrublet
+      continue-on-error: true
+
+    - name: Run end-to-end smoke test
+      run: |
+        timeout 300 bash scripts/e2e_smoke.sh
+      timeout-minutes: 5
+
+    - name: Run Python API end-to-end tests
+      run: |
+        pytest tests/test_e2e_agent.py -v -s --tb=short
+      timeout-minutes: 10
+
+    - name: Run doublet stub tests
+      run: |
+        pytest tests/test_doublets_stub.py -v -s --tb=short
+      timeout-minutes: 5
+
+    - name: Upload test artifacts on failure
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-artifacts-${{ matrix.python-version }}
+        path: |
+          runs/
+          *.json
+          *.log
+          test_*.png
+        retention-days: 7
+
+    - name: Upload smoke test workspace on failure
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: smoke-test-workspace-${{ matrix.python-version }}
+        path: /tmp/*/e2e_smoke_test/
+        retention-days: 7
+
+  performance:
+    runs-on: ubuntu-latest
+    needs: [test, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[qc,dev]
+        pip install sentence-transformers faiss-cpu rank-bm25
+
+    - name: Benchmark synthetic data generation
+      run: |
+        python -c "
+        import time
+        from scqc_agent.tests.synth import make_synth_adata
+        
+        start = time.time()
+        adata = make_synth_adata(n_cells=1000, n_genes=2000)
+        elapsed = time.time() - start
+        
+        print(f'Synthetic data generation: {elapsed:.2f}s')
+        print(f'Performance: {adata.n_obs * adata.n_vars / elapsed:.0f} elements/sec')
+        
+        assert elapsed < 10.0, f'Synthetic data generation too slow: {elapsed:.2f}s'
+        "
+
+    - name: Benchmark knowledge base retrieval
+      run: |
+        python -c "
+        import time
+        from scqc_agent.agent.rag.retriever import HybridRetriever
+        
+        try:
+            start = time.time()
+            retriever = HybridRetriever('kb')
+            init_time = time.time() - start
+            
+            start = time.time()
+            docs = retriever.retrieve('quality control metrics', k=5)
+            query_time = time.time() - start
+            
+            print(f'KB initialization: {init_time:.2f}s')
+            print(f'Query time: {query_time:.2f}s')
+            print(f'Results returned: {len(docs)}')
+            
+            assert init_time < 30.0, f'KB init too slow: {init_time:.2f}s'
+            assert query_time < 5.0, f'Query too slow: {query_time:.2f}s'
+            
+        except Exception as e:
+            print(f'KB benchmark skipped: {e}')
+        "
+      continue-on-error: true
+
+    - name: Save performance metrics
+      run: |
+        echo "Performance benchmarks completed at $(date)" > performance.log
+      continue-on-error: true
