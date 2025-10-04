@@ -2,6 +2,15 @@
 
 A runtime agent for scRNA-seq quality control workflows via natural language.
 
+The goal of scAgent is to streamline quality control (QC) for novice scRNA-seq researchers and reduce the friction of reproducing processing pipelines across labs. One of the biggest challenges in replicating published experiments is adapting QC pipelines to match another study’s workflow.
+
+scAgent addresses this by:
+	•	Providing state JSONs and automated HTML reports that make QC deterministic, transparent, and shareable
+	•	Allowing researchers to reproduce experiments quickly and consistently by re-using shared states and reports
+	•	Standardizing scRNA-seq QC pipelines so results are easier to validate, compare, and build upon
+
+With scAgent, reproducing another study’s QC becomes a matter of re-running a saved state, enabling more reliable and collaborative scRNA-seq research. This project is open to collaboration with the scRNA-seq community to further improve reproducibility and usability.
+
 [![CI](https://github.com/your-org/scqc-agent/workflows/CI/badge.svg)](https://github.com/your-org/scqc-agent/actions)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
