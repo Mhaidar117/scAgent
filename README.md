@@ -367,4 +367,4 @@ If you use scQC Agent in your research, please cite:
 
 ---
 
-**Status**: Phase 0 Complete | **Next**: Phase 1 QC Implementation 🔬
+**Status**: Graph Analysis under development 9/28/25
