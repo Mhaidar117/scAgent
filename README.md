@@ -73,7 +73,7 @@ scqc init
 scqc load --path data/pbmc3k.h5ad
 
 # Generate a workflow plan
-scqc plan --text "compute qc metrics, filter cells with min_genes=200, and create umap"
+scqc chat "compute qc metrics, filter cells with min_genes=200, and create umap" --interactive
 
 # Check session state
 scqc state show
