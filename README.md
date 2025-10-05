@@ -93,6 +93,21 @@ print(response["plan"])
 
 See `examples/quickstart.ipynb` for a complete walkthrough of the package functionality.
 
+### Stored Plan Execution
+
+Execute previously generated plans for reproducibility and batch processing:
+
+```python
+# Generate and save plan
+result = agent.chat("compute QC metrics for mouse data", mode="plan")
+plan_path = result["plan_path"]  # Automatically saved
+
+# Execute stored plan (can be hours/days later)
+result = agent.chat("execute QC", mode="execute", plan_path=plan_path)
+```
+
+See `examples/stored_plan_demo.py` for a complete demo of plan storage, reuse, and modification.
+
 ## Architecture
 
 ### Core Components

@@ -175,3 +175,6 @@ tests/**/Data_files/
 
 #states
 .scqc_state.json.backup
+
+.claude/
+CLAUDE.md

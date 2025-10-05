@@ -363,23 +363,24 @@ class Agent:
         """Save current session state to file."""
         self.state.save(self.state_path)
     
-    def chat(self, message: str, mode: str = "plan") -> Dict[str, Any]:
+    def chat(self, message: str, mode: str = "plan", plan_path: Optional[str] = None) -> Dict[str, Any]:
         """Enhanced chat interface with planning and execution phases.
-        
+
         Args:
             message: Natural language message from user
             mode: "plan" (generate plan for approval) or "execute" (execute approved plan)
-            
+            plan_path: Path to stored plan.json file (for execute mode only)
+
         Returns:
             Dictionary with plan or execution results
         """
         chat_run_dir = self._create_chat_run_dir()
-        
+
         try:
             if mode == "plan":
                 return self._planning_phase(message, chat_run_dir)
             elif mode == "execute":
-                return self._execution_phase(message, chat_run_dir)
+                return self._execution_phase(message, chat_run_dir, plan_path=plan_path)
             else:
                 return {"error": f"Unknown mode: {mode}"}
         except Exception as e:
@@ -400,25 +401,54 @@ class Agent:
             "plan": plan,
             "mode": "planning"
         })
-        
+
+        # Construct explicit path to the saved plan file
+        plan_file_path = str(chat_run_dir / "plan.json")
+
         return {
             "message": message,
             "intent": intent,
             "plan": plan,
             "mode": "planning",
             "chat_run_dir": str(chat_run_dir),
+            "plan_path": plan_file_path,  # Explicit path to reuse for execution
             "status": "plan_ready",
-            "next_steps": "Review the plan and use 'execute' to run it, or provide feedback to modify it."
+            "next_steps": f"Review the plan and execute with: --mode execute --plan-path {plan_file_path}"
         }
 
-    def _execution_phase(self, message: str, chat_run_dir: Path) -> Dict[str, Any]:
-        """Execution phase - execute the approved plan."""
-        # Load the plan from the most recent planning session
-        # (You'd need to implement plan storage/retrieval)
-        
-        # For now, regenerate plan if needed
-        intent = self._classify_intent(message)
-        plan = self._generate_plan(message, intent)
+    def _execution_phase(self, message: str, chat_run_dir: Path, plan_path: Optional[str] = None) -> Dict[str, Any]:
+        """Execution phase - execute the approved plan.
+
+        Args:
+            message: Original natural language message
+            chat_run_dir: Directory for chat session artifacts
+            plan_path: Path to stored plan.json file (if None, regenerates plan)
+
+        Returns:
+            Dictionary with execution results
+        """
+        # Load plan from disk if path provided, otherwise regenerate
+        if plan_path:
+            # Validate and load stored plan
+            validation_result = self._validate_and_load_plan(plan_path)
+
+            if "error" in validation_result:
+                return {
+                    "error": validation_result["error"],
+                    "status": "failed",
+                    "mode": "execution",
+                    "validation_details": validation_result.get("details", {})
+                }
+
+            plan = validation_result["plan"]
+            intent = validation_result.get("intent", "stored_plan")
+            plan_metadata = validation_result.get("metadata", {})
+
+        else:
+            # Regenerate plan if no path provided
+            intent = self._classify_intent(message)
+            plan = self._generate_plan(message, intent)
+            plan_metadata = {}
         
         # Step 3: Tool Execution
         tool_results = self._execute_plan(plan)
@@ -616,28 +646,190 @@ class Agent:
         # return summary
     
     def _save_chat_artifacts(self, run_dir: Path, data: Dict[str, Any]) -> None:
-        """Save chat session artifacts."""
+        """Save chat session artifacts with validation metadata."""
         # Save messages
         with open(run_dir / "messages.json", "w") as f:
             json.dump(data, f, indent=2)
-        
-        # Save plan separately for easy access
+
+        # Save plan separately with metadata for validation
         if "plan" in data:
+            import hashlib
+
+            plan = data["plan"]
+            plan_json = json.dumps(plan, sort_keys=True)
+
+            # Create plan envelope with metadata
+            plan_envelope = {
+                "version": "1.0",
+                "created_at": datetime.now().isoformat(),
+                "message": data.get("message", ""),
+                "intent": data.get("intent", ""),
+                "checksum": hashlib.sha256(plan_json.encode()).hexdigest(),
+                "plan": plan
+            }
+
             with open(run_dir / "plan.json", "w") as f:
-                json.dump(data["plan"], f, indent=2)
+                json.dump(plan_envelope, f, indent=2)
     
     def _get_state_summary(self) -> str:
         """Get a summary of current session state."""
         summary = f"Run ID: {self.state.run_id}\n"
         summary += f"Steps completed: {len(self.state.history)}\n"
         summary += f"Artifacts: {len(self.state.artifacts)}\n"
-        
+
         if self.state.metadata:
             if "adata_path" in self.state.metadata:
                 summary += f"Data loaded: {self.state.metadata['adata_path']}\n"
-        
+
         return summary
-    
+
+    def _validate_and_load_plan(self, plan_path: str) -> Dict[str, Any]:
+        """Validate and load a stored plan with comprehensive checks.
+
+        Args:
+            plan_path: Path to the plan.json file
+
+        Returns:
+            Dictionary with either:
+                - Success: {"plan": [...], "intent": "...", "metadata": {...}}
+                - Failure: {"error": "...", "details": {...}}
+        """
+        import hashlib
+
+        plan_file = Path(plan_path)
+
+        # Check 1: File existence
+        if not plan_file.exists():
+            return {
+                "error": f"Plan file not found: {plan_path}",
+                "details": {"check": "file_existence", "path": plan_path}
+            }
+
+        # Check 2: File is readable and valid JSON
+        try:
+            with open(plan_file, 'r') as f:
+                plan_data = json.load(f)
+        except json.JSONDecodeError as e:
+            return {
+                "error": f"Failed to parse plan file: {str(e)}",
+                "details": {"check": "json_parse", "parse_error": str(e)}
+            }
+        except Exception as e:
+            return {
+                "error": f"Failed to read plan file: {str(e)}",
+                "details": {"check": "file_read", "read_error": str(e)}
+            }
+
+        # Check 3: Detect plan format (envelope vs. legacy)
+        if isinstance(plan_data, dict) and "plan" in plan_data:
+            # New envelope format with metadata
+            plan_envelope = plan_data
+            plan = plan_envelope.get("plan")
+            metadata = {
+                "version": plan_envelope.get("version"),
+                "created_at": plan_envelope.get("created_at"),
+                "message": plan_envelope.get("message"),
+                "intent": plan_envelope.get("intent"),
+                "checksum": plan_envelope.get("checksum")
+            }
+
+            # Check 4: Validate checksum if present
+            if metadata["checksum"]:
+                plan_json = json.dumps(plan, sort_keys=True)
+                computed_checksum = hashlib.sha256(plan_json.encode()).hexdigest()
+
+                if computed_checksum != metadata["checksum"]:
+                    return {
+                        "error": "Plan integrity check failed: checksum mismatch",
+                        "details": {
+                            "check": "checksum",
+                            "expected": metadata["checksum"],
+                            "computed": computed_checksum,
+                            "warning": "Plan may have been manually modified"
+                        }
+                    }
+
+            # Check 5: Plan age warning (optional)
+            if metadata["created_at"]:
+                try:
+                    from datetime import datetime, timedelta
+                    created = datetime.fromisoformat(metadata["created_at"])
+                    age = datetime.now() - created
+                    if age > timedelta(days=30):
+                        # Warning only, not a failure
+                        metadata["age_warning"] = f"Plan is {age.days} days old"
+                except Exception:
+                    pass
+
+        elif isinstance(plan_data, list):
+            # Legacy format (plain list of steps)
+            plan = plan_data
+            metadata = {
+                "version": "legacy",
+                "format": "plain_list"
+            }
+        else:
+            return {
+                "error": f"Invalid plan format: expected dict with 'plan' key or list, got {type(plan_data).__name__}",
+                "details": {"check": "format_detection", "type": type(plan_data).__name__}
+            }
+
+        # Check 6: Validate plan structure
+        if not isinstance(plan, list):
+            return {
+                "error": f"Plan must be a list, got {type(plan).__name__}",
+                "details": {"check": "plan_type", "actual_type": type(plan).__name__}
+            }
+
+        if len(plan) == 0:
+            return {
+                "error": "Plan is empty",
+                "details": {"check": "plan_length", "length": 0}
+            }
+
+        # Check 7: Validate each step in the plan
+        for i, step in enumerate(plan):
+            if not isinstance(step, dict):
+                return {
+                    "error": f"Step {i} is not a dictionary: {type(step).__name__}",
+                    "details": {
+                        "check": "step_format",
+                        "step_index": i,
+                        "step_type": type(step).__name__
+                    }
+                }
+
+            # Verify required fields
+            if "tool" not in step:
+                return {
+                    "error": f"Step {i} missing required 'tool' field",
+                    "details": {
+                        "check": "step_fields",
+                        "step_index": i,
+                        "step": step
+                    }
+                }
+
+            # Verify tool exists in registry
+            tool_name = step["tool"]
+            if tool_name not in self.tools:
+                return {
+                    "error": f"Step {i}: Unknown tool '{tool_name}'",
+                    "details": {
+                        "check": "tool_registry",
+                        "step_index": i,
+                        "tool_name": tool_name,
+                        "available_tools": list(self.tools.keys())
+                    }
+                }
+
+        # All checks passed
+        return {
+            "plan": plan,
+            "intent": metadata.get("intent", "stored_plan"),
+            "metadata": metadata
+        }
+
     # Fallback methods for when LangChain is not available
     def _fallback_classify_intent(self, message: str) -> str:
         """Fallback intent classification using keywords."""
