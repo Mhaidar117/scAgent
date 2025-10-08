@@ -354,7 +354,7 @@ If you use scQC Agent in your research, please cite:
 @software{scqc_agent,
   title={scQC Agent: Natural Language Interface for scRNA-seq Quality Control},
   author={scQC Agent Team},
-  year={2024},
+  year={2025},
   url={https://github.com/your-org/scqc-agent}
 }
 ```
