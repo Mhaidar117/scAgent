@@ -26,7 +26,7 @@ With scAgent, reproducing another study’s QC becomes a matter of re-running a 
 ## Ways to Contribute
 
 - Report bugs or request features via GitHub Issues
-- Improve Documentation for accessibility and clarity
+- Improve documentation for accessibility and clarity
 - Add new QC tools or improve exisiting steps
 - Share QC state file from your work to build a community library
 - Improve the retrieval quality by expanding the knowledge base with your own SOPs
