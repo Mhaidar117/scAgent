@@ -12,7 +12,7 @@ scAgent addresses this by:
 - Allowing researchers to reproduce experiments quickly and consistently by re-using shared states and reports
 - Standardizing scRNA-seq QC pipelines so results are easier to validate, compare, and build upon
 
-With scAgent, reproducing another study’s QC becomes a matter of re-running a saved state, enabling more reliable and collaborative scRNA-seq research. This project is open to collaboration with the scRNA-seq community to further improve reproducibility and usability.
+With scAgent, reproducing another study’s QC becomes a matter of re-running a saved state, enabling more reliable and collaborative research. This project is open to collaboration with the scRNA-seq community to further improve reproducibility and usability.
 
 [![CI](https://github.com/your-org/scqc-agent/workflows/CI/badge.svg)](https://github.com/your-org/scqc-agent/actions)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
