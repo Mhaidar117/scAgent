@@ -17,7 +17,7 @@ except ImportError:
 def load_anndata(path: str) -> ToolResult:
     """Load AnnData file with real Scanpy support."""
     file_path = Path(path)
-    
+
     if not file_path.exists():
         return ToolResult(
             message=f"Error: File not found at {path}",
@@ -25,7 +25,7 @@ def load_anndata(path: str) -> ToolResult:
             artifacts=[],
             citations=[]
         )
-    
+
     if not SCANPY_AVAILABLE:
         # Fallback to Phase 0 behavior if scanpy not installed
         if not path.endswith(('.h5ad', '.h5', '.h5ad.gz', '.h5.gz')):
@@ -35,19 +35,19 @@ def load_anndata(path: str) -> ToolResult:
                 artifacts=[],
                 citations=[]
             )
-        
+
         return ToolResult(
             message=f"Successfully validated AnnData file at {path}. Install scanpy for Phase 1 processing.",
             state_delta={"adata_path": path},
             artifacts=[],
             citations=[]
         )
-    
-    # Phase 1: Real AnnData loading
+
+    # Phase 1: Real AnnData loading - sc.read_h5ad handles both .h5ad and .h5ad.gz
     try:
         adata = sc.read_h5ad(path)
         n_obs, n_vars = adata.shape
-        
+
         # Basic dataset summary
         dataset_summary = {
             "n_cells": n_obs,
@@ -55,7 +55,7 @@ def load_anndata(path: str) -> ToolResult:
             "file_path": str(file_path.absolute()),
             "loaded_timestamp": datetime.now().isoformat()
         }
-        
+
         return ToolResult(
             message=f"Successfully loaded AnnData with {n_obs:,} cells and {n_vars:,} genes from {path}",
             state_delta={
@@ -65,7 +65,7 @@ def load_anndata(path: str) -> ToolResult:
             artifacts=[],
             citations=["Wolf et al. (2018) Genome Biology"]
         )
-        
+
     except Exception as e:
         return ToolResult(
             message=f"Error loading AnnData file: {str(e)}",

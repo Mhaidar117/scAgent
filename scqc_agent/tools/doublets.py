@@ -272,6 +272,7 @@ def detect_doublets(
             threshold_float = 0.5
         
         state_delta = {
+            "adata_path": str(checkpoint_path),  # Update to point to checkpoint with doublet annotations
             "doublet_method": method,
             "expected_doublet_rate": expected_rate,
             "detected_doublet_rate": round(doublet_rate, 4),
@@ -472,6 +473,7 @@ def apply_doublet_filter(
         final_doublet_rate = n_doublets / original_n_cells
         
         state_delta = {
+            "adata_path": str(checkpoint_path),  # Update to point to filtered checkpoint
             "cells_before_doublet_filter": original_n_cells,
             "cells_after_doublet_filter": n_kept,
             "doublets_removed": int(n_doublets),

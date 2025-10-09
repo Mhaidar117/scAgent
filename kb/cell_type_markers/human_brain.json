@@ -1,0 +1,56 @@
+{
+  "_metadata": {
+    "species": "human",
+    "tissue": "brain",
+    "version": "1.0",
+    "source": "Literature-curated markers from Allen Brain Atlas, Zeisel et al. 2018, Lake et al. 2018",
+    "citations": [
+      "Zeisel et al. (2018) Cell - Molecular Architecture of the Mouse Nervous System",
+      "Lake et al. (2018) Nature Biotechnology - Integrative single-cell analysis",
+      "Allen Brain Atlas - Human Multiple Cortical Areas SMART-seq"
+    ],
+    "updated": "2025-01-09"
+  },
+  "markers": {
+    "Excitatory neurons": {
+      "genes": ["SLC17A7", "NEUROD6", "SATB2", "TBR1", "FEZF2"],
+      "description": "Glutamatergic neurons, express vesicular glutamate transporter"
+    },
+    "Inhibitory neurons": {
+      "genes": ["GAD1", "GAD2", "SLC32A1", "DLX1", "DLX5"],
+      "description": "GABAergic interneurons"
+    },
+    "Astrocytes": {
+      "genes": ["GFAP", "AQP4", "SLC1A2", "SLC1A3", "ALDH1L1"],
+      "description": "Glial cells, maintain homeostasis and provide metabolic support"
+    },
+    "Oligodendrocytes": {
+      "genes": ["MOG", "MBP", "PLP1", "MAG", "MOBP"],
+      "description": "Myelinating glia"
+    },
+    "Oligodendrocyte precursor cells": {
+      "genes": ["PDGFRA", "CSPG4", "VCAN", "SOX10"],
+      "description": "OPCs, progenitors of oligodendrocytes"
+    },
+    "Microglia": {
+      "genes": ["C1QA", "C1QB", "C1QC", "CX3CR1", "P2RY12", "TMEM119"],
+      "description": "Resident immune cells of the CNS"
+    },
+    "Endothelial cells": {
+      "genes": ["CLDN5", "FLT1", "PECAM1", "VWF"],
+      "description": "Blood vessel endothelium"
+    },
+    "Pericytes": {
+      "genes": ["PDGFRB", "RGS5", "ABCC9", "KCNJ8"],
+      "description": "Vascular mural cells"
+    },
+    "Ependymal cells": {
+      "genes": ["FOXJ1", "DNAH12", "RSPH1"],
+      "description": "Ciliated cells lining ventricles"
+    },
+    "Choroid plexus": {
+      "genes": ["TTR", "FOLR1", "AQP1"],
+      "description": "Specialized epithelium producing cerebrospinal fluid"
+    }
+  }
+}

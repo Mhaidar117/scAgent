@@ -71,13 +71,14 @@ class TestQCFilters:
     def test_apply_qc_filters_no_scanpy(self):
         """Test QC filtering when scanpy is not available."""
         from scqc_agent.tools.qc import SCANPY_AVAILABLE, apply_qc_filters
-        
+
         if SCANPY_AVAILABLE:
             pytest.skip("Scanpy is available, cannot test fallback behavior")
-        
-        state = SessionState(adata_path="test.h5ad", run_dir=str(self.temp_path))
+
+        state = SessionState(run_id="test_run")
+        state.adata_path = "test.h5ad"
         result = apply_qc_filters(state)
-        
+
         assert "Scanpy not available" in result.message
         assert result.state_delta == {}
         assert len(result.artifacts) == 0
@@ -106,10 +107,8 @@ class TestQCFilters:
         adata.write_h5ad(data_path)
         
         # Create state
-        state = SessionState(
-            adata_path=str(data_path),
-            run_dir=str(self.temp_path)
-        )
+        state = SessionState(run_id="test_run")
+        state.adata_path = str(data_path)
         
         # Try to apply filters
         result = apply_qc_filters(state)
@@ -136,11 +135,9 @@ class TestQCFilters:
         n_genes_before = adata.n_vars
         
         # Create state
-        state = SessionState(
-            adata_path=str(data_path),
-            run_dir=str(self.temp_path),
-            config={"batch_key": "batch"}
-        )
+        state = SessionState(run_id="test_run")
+        state.adata_path = str(data_path)
+        state.metadata = {"batch_key": "batch"}
         
         # Apply filters with threshold method
         result = apply_qc_filters(state, min_genes=200, max_pct_mt=20.0, method="threshold")
@@ -206,10 +203,8 @@ class TestQCFilters:
         adata.write_h5ad(data_path)
         
         # Create state
-        state = SessionState(
-            adata_path=str(data_path),
-            run_dir=str(self.temp_path)
-        )
+        state = SessionState(run_id="test_run")
+        state.adata_path = str(data_path)
         
         # Apply filters with MAD method
         result = apply_qc_filters(state, min_genes=100, max_pct_mt=50.0, method="MAD")
@@ -247,10 +242,8 @@ class TestQCFilters:
         adata.write_h5ad(data_path)
         
         # Create state
-        state = SessionState(
-            adata_path=str(data_path),
-            run_dir=str(self.temp_path)
-        )
+        state = SessionState(run_id="test_run")
+        state.adata_path = str(data_path)
         
         # Apply filters with quantile method
         result = apply_qc_filters(state, min_genes=100, max_pct_mt=50.0, method="quantile")
@@ -288,11 +281,9 @@ class TestQCFilters:
         adata.write_h5ad(data_path)
         
         # Create state with batch key
-        state = SessionState(
-            adata_path=str(data_path),
-            run_dir=str(self.temp_path),
-            config={"batch_key": "batch"}
-        )
+        state = SessionState(run_id="test_run")
+        state.adata_path = str(data_path)
+        state.metadata = {"batch_key": "batch"}
         
         # Apply filters
         result = apply_qc_filters(state, min_genes=200, max_pct_mt=20.0)
@@ -338,10 +329,8 @@ class TestQCFilters:
         n_cells_before = adata.n_obs
         
         # Create state
-        state = SessionState(
-            adata_path=str(data_path),
-            run_dir=str(self.temp_path)
-        )
+        state = SessionState(run_id="test_run")
+        state.adata_path = str(data_path)
         
         # Test very strict thresholds (should remove most cells)
         result = apply_qc_filters(state, min_genes=9999, max_pct_mt=0.1)
@@ -379,10 +368,8 @@ class TestQCFilters:
         n_genes_before = adata.n_vars
         
         # Create state
-        state = SessionState(
-            adata_path=str(data_path),
-            run_dir=str(self.temp_path)
-        )
+        state = SessionState(run_id="test_run")
+        state.adata_path = str(data_path)
         
         # Apply filters
         result = apply_qc_filters(state, min_genes=200, max_pct_mt=20.0)

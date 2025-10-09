@@ -28,26 +28,19 @@ def _load_adata_from_state(state: SessionState) -> object:
     """Load AnnData object from session state."""
     if not SCANPY_AVAILABLE:
         raise ImportError("Scanpy is required for QC operations. Install with: pip install scanpy")
-    
+
     if not state.adata_path:
         raise ValueError("No AnnData file loaded. Use 'scqc load' first.")
-    
+
     # Load from most recent checkpoint if available
     if state.history:
         last_entry = state.history[-1]
         checkpoint_path = last_entry.get("checkpoint_path")
         if checkpoint_path and Path(checkpoint_path).exists():
             return sc.read_h5ad(checkpoint_path)
-    
-    # Fall back to original file with flexible loading for .gz files
-    if state.adata_path.endswith('.gz'):
-        return sc.read_h5ad(state.adata_path)  # More flexible, handles .h5ad.gz
-    elif state.adata_path.endswith('.h5ad'):
-        return sc.read_h5ad(state.adata_path)
-    elif state.adata_path.endswith('.h5'):
-        return sc.read_h5ad(state.adata_path)
-    else:
-        return sc.read(state.adata_path)  # Let scanpy auto-detect
+
+    # Fall back to original file - sc.read_h5ad handles both .h5ad and .h5ad.gz
+    return sc.read_h5ad(state.adata_path)
 
 
 def _detect_species(adata: object, mito_prefix: Optional[str] = None) -> str:
@@ -488,7 +481,11 @@ def plot_qc_metrics(
             plt.savefig(violin_path, dpi=300, bbox_inches='tight')
             plt.close()
             artifacts.append(str(violin_path))
-        
+
+        # Create checkpoint for QC plots
+        checkpoint_path = step_dir / f"qc_plots_{stage}_checkpoint.h5ad"
+        state.checkpoint(str(checkpoint_path), f"qc_plots_{stage}")
+
         # Register plots with state
         for artifact in artifacts:
             state.add_artifact(str(artifact), f"QC Violin Plot ({stage})")

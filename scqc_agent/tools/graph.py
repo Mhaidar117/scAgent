@@ -35,21 +35,21 @@ except ImportError:
 def _load_adata_from_state(state: SessionState) -> object:
     """Load AnnData object from session state."""
     if not SCANPY_AVAILABLE:
-        raise ImportError("Scanpy is required for graph operations. Install with: pip install scanpy")
-    
+        raise ImportError("Scanpy is required. Install with: pip install scanpy")
+
     adata_path = state.adata_path
     if not adata_path:
         raise ValueError("No AnnData file loaded. Use 'scqc load' first.")
-    
+
     # Load from most recent checkpoint if available
     if state.history:
         last_entry = state.history[-1]
         checkpoint_path = last_entry.get("checkpoint_path")
         if checkpoint_path and Path(checkpoint_path).exists():
             return sc.read_h5ad(checkpoint_path)
-    
-    # Fall back to original file
-    return sc.read(adata_path)
+
+    # Fall back to original file - sc.read_h5ad handles both .h5ad and .h5ad.gz
+    return sc.read_h5ad(adata_path)
 
 
 def quick_graph(
@@ -210,6 +210,7 @@ def quick_graph(
         connectivity_rate = (adata.obsp['connectivities'].nnz / 2) / len(adata)
         
         state_delta = {
+            "adata_path": str(checkpoint_path),  # Update to point to checkpoint with graph results
             "n_clusters": n_clusters,
             "largest_cluster_size": int(largest_cluster),
             "largest_cluster_pct": round(largest_cluster_pct, 2),
@@ -470,6 +471,7 @@ def graph_from_rep(
         connectivity_rate = (adata.obsp['connectivities'].nnz / 2) / len(adata)
         
         state_delta = {
+            "adata_path": str(checkpoint_path),  # Update to point to checkpoint with graph results
             f"n_clusters_{rep_short}": n_clusters,
             f"largest_cluster_size_{rep_short}": int(largest_cluster),
             f"largest_cluster_pct_{rep_short}": round(largest_cluster_pct, 2),
@@ -697,6 +699,7 @@ def final_graph(
         cluster_balance = cluster_entropy / max_entropy if max_entropy > 0 else 0
         
         state_delta = {
+            "adata_path": str(checkpoint_path),  # Update to point to final checkpoint
             "final_n_clusters": n_clusters,
             "final_largest_cluster_size": int(largest_cluster),
             "final_largest_cluster_pct": round(largest_cluster_pct, 2),

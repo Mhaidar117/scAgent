@@ -1,0 +1,68 @@
+{
+  "_metadata": {
+    "species": "human",
+    "tissue": "kidney",
+    "version": "1.0",
+    "source": "Literature-curated markers from Lake et al. 2019, Wu et al. 2018, Stewart et al. 2019",
+    "citations": [
+      "Lake et al. (2019) Nature Communications - An atlas of healthy and injured cell states and niches in the human kidney",
+      "Wu et al. (2018) Science - Advantages of Single-Nucleus over Single-Cell RNA Sequencing of Adult Kidney",
+      "Stewart et al. (2019) Science - Spatiotemporal immune zonation of the human kidney"
+    ],
+    "updated": "2025-01-09"
+  },
+  "markers": {
+    "Podocytes": {
+      "genes": ["NPHS1", "NPHS2", "PODXL", "WT1", "MAGI2"],
+      "description": "Glomerular epithelial cells, form filtration barrier"
+    },
+    "Proximal tubule": {
+      "genes": ["SLC5A2", "SLC5A12", "CUBN", "LRP2", "SLC34A1"],
+      "description": "Reabsorb filtered substances"
+    },
+    "Loop of Henle": {
+      "genes": ["SLC12A1", "UMOD", "CLDN16"],
+      "description": "Thin and thick ascending limb"
+    },
+    "Distal convoluted tubule": {
+      "genes": ["SLC12A3", "TRPM6", "CALB1"],
+      "description": "DCT, sodium-chloride reabsorption"
+    },
+    "Collecting duct principal cells": {
+      "genes": ["AQP2", "AQP3", "SCNN1A", "SCNN1B"],
+      "description": "Water reabsorption, ADH-responsive"
+    },
+    "Collecting duct intercalated cells": {
+      "genes": ["SLC4A1", "ATP6V1B1", "ATP6V0D2", "SLC26A4"],
+      "description": "Acid-base balance"
+    },
+    "Endothelial cells": {
+      "genes": ["PECAM1", "VWF", "FLT1", "KDR", "PLVAP"],
+      "description": "Vascular endothelium"
+    },
+    "Mesangial cells": {
+      "genes": ["PDGFRB", "REN", "ACTA2", "MYH11"],
+      "description": "Glomerular mesangium"
+    },
+    "Parietal epithelial cells": {
+      "genes": ["PAX8", "CLDN1", "CDH1"],
+      "description": "Bowman's capsule lining"
+    },
+    "Macrophages": {
+      "genes": ["CD68", "C1QA", "C1QB", "LYZ"],
+      "description": "Resident kidney macrophages"
+    },
+    "T cells": {
+      "genes": ["CD3D", "CD3E", "CD3G", "IL7R"],
+      "description": "Kidney-infiltrating T lymphocytes"
+    },
+    "B cells": {
+      "genes": ["CD79A", "MS4A1", "CD19"],
+      "description": "B lymphocytes"
+    },
+    "Fibroblasts": {
+      "genes": ["COL1A1", "COL3A1", "DCN", "LUM"],
+      "description": "Interstitial fibroblasts"
+    }
+  }
+}

@@ -285,6 +285,7 @@ def run_scvi(
         latent_variance = np.var(latent_repr, axis=0).mean()
         
         state_delta = {
+            "adata_path": str(checkpoint_path),  # Update to point to integrated checkpoint
             "scvi_epochs": epochs,
             "scvi_n_latent": n_latent,
             "scvi_batch_key": batch_key,

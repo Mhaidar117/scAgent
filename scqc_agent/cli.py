@@ -1072,24 +1072,28 @@ def chat(
     message: str = typer.Argument(..., help="Natural language request for the scQC workflow"),
     mode: str = typer.Option("plan", "--mode", "-m", help="Mode: 'plan' (default) or 'execute'"),
     interactive: bool = typer.Option(False, "--interactive", "-i", help="Interactive mode with approval"),
+    plan_path: Optional[str] = typer.Option(None, "--plan-path", "-p", help="Path to stored plan.json (for execute mode)"),
     state_path: Optional[str] = typer.Option(None, "--state-path", "-s", help="Path to state file"),
     kb_path: Optional[str] = typer.Option(None, "--kb-path", "-k", help="Path to knowledge base directory"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed execution information"),
 ) -> None:
     """Natural language interface for scQC workflows with planning and execution phases.
-    
+
     The agent operates in two modes:
     1. PLAN mode (default): Generate and show execution plan without running tools
     2. EXECUTE mode: Execute the plan and run the actual tools
     3. INTERACTIVE mode: Plan first, ask for approval, then execute
-    
+
     Examples:
         # Generate plan only
         scqc chat "compute QC metrics for human data" --mode plan
-        
+
         # Execute directly (careful - this runs tools immediately)
         scqc chat "compute QC metrics for human data" --mode execute
-        
+
+        # Execute from stored plan
+        scqc chat "compute QC metrics for human data" --mode execute --plan-path runs/*/chat_*/plan.json
+
         # Interactive mode (recommended)
         scqc chat "compute QC metrics for human data" --interactive
     """
@@ -1166,10 +1170,12 @@ def chat(
             ))
             
             with console.status("[bold green]Executing plan..."):
-                execution_result = agent.chat(message, mode="execute")
-            
+                # Get the explicit plan path from the planning result
+                stored_plan_path = plan_result.get("plan_path")
+                execution_result = agent.chat(message, mode="execute", plan_path=stored_plan_path)
+
             result = execution_result
-            
+
         else:
             # Non-interactive mode
             if mode == "plan":
@@ -1181,16 +1187,27 @@ def chat(
                     border_style="blue"
                 ))
             else:
-                console.print(Panel(
-                    f"🤖 **Direct Execution Mode**\n\n"
-                    f"Request: {message}\n\n"
-                    f"⚠️  Tools will be executed immediately!",
-                    title="scQC Agent - Direct Execution",
-                    border_style="red"
-                ))
-            
+                # Check if plan_path is provided for execute mode
+                if mode == "execute" and plan_path:
+                    console.print(Panel(
+                        f"🤖 **Stored Plan Execution Mode**\n\n"
+                        f"Request: {message}\n\n"
+                        f"📋 Plan: {plan_path}\n\n"
+                        f"⚠️  Tools will be executed from stored plan!",
+                        title="scQC Agent - Execute Stored Plan",
+                        border_style="green"
+                    ))
+                else:
+                    console.print(Panel(
+                        f"🤖 **Direct Execution Mode**\n\n"
+                        f"Request: {message}\n\n"
+                        f"⚠️  Tools will be executed immediately!",
+                        title="scQC Agent - Direct Execution",
+                        border_style="red"
+                    ))
+
             with console.status(f"[bold blue]Processing in {mode} mode..."):
-                result = agent.chat(message, mode=mode)
+                result = agent.chat(message, mode=mode, plan_path=plan_path)
         
         # Display results based on mode
         if result.get("status") == "failed":
@@ -1209,8 +1226,15 @@ def chat(
                     description = step.get("description", "No description")
                     console.print(f"  {i}. [cyan]{tool}[/cyan]: {description}")
                 
+                # Show plan file path
+                plan_path = result.get("plan_path")
+                if plan_path:
+                    console.print(f"\n💾 **Plan saved to**: [dim]{plan_path}[/dim]")
+
                 console.print(f"\n💡 **Next Steps**:")
-                console.print(f"• To execute: [green]scqc chat \"{message}\" --mode execute[/green]")
+                if plan_path:
+                    console.print(f"• To execute stored plan: [green]scqc chat \"{message}\" --mode execute --plan-path {plan_path}[/green]")
+                console.print(f"• To execute (regenerate plan): [green]scqc chat \"{message}\" --mode execute[/green]")
                 console.print(f"• For interactive: [blue]scqc chat \"{message}\" --interactive[/blue]")
                 console.print(f"• To modify: Adjust your request and plan again")
             
