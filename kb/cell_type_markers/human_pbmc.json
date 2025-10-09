@@ -1,0 +1,77 @@
+{
+  "_metadata": {
+    "species": "human",
+    "tissue": "pbmc",
+    "aliases": ["immune", "blood", "peripheral_blood"],
+    "version": "1.0",
+    "source": "Literature-curated markers from 10x Genomics PBMC datasets, Zheng et al. 2017",
+    "citations": [
+      "Zheng et al. (2017) Nature Communications - Massively parallel digital transcriptional profiling of single cells",
+      "10x Genomics PBMC Reference Dataset",
+      "Hao et al. (2021) Cell - Integrated analysis of multimodal single-cell data"
+    ],
+    "updated": "2025-01-09"
+  },
+  "markers": {
+    "CD4+ T cells": {
+      "genes": ["CD3D", "CD3E", "CD4", "IL7R", "LTB"],
+      "description": "Helper T cells"
+    },
+    "CD8+ T cells": {
+      "genes": ["CD3D", "CD3E", "CD8A", "CD8B"],
+      "description": "Cytotoxic T cells"
+    },
+    "Naive T cells": {
+      "genes": ["IL7R", "CCR7", "LEF1", "TCF7", "SELL"],
+      "description": "Antigen-inexperienced T cells"
+    },
+    "Memory T cells": {
+      "genes": ["IL7R", "S100A4", "CD69"],
+      "description": "Previously activated T cells"
+    },
+    "Regulatory T cells": {
+      "genes": ["FOXP3", "IL2RA", "CTLA4"],
+      "description": "Tregs, immune suppression"
+    },
+    "B cells": {
+      "genes": ["CD79A", "CD79B", "MS4A1", "CD19"],
+      "description": "Antibody-producing lymphocytes"
+    },
+    "Naive B cells": {
+      "genes": ["TCL1A", "IGHD", "IGHM"],
+      "description": "Antigen-inexperienced B cells"
+    },
+    "Memory B cells": {
+      "genes": ["CD27", "TNFRSF13B"],
+      "description": "Previously activated B cells"
+    },
+    "Plasma cells": {
+      "genes": ["MZB1", "SSR4", "IGLL5", "JCHAIN"],
+      "description": "Antibody-secreting cells"
+    },
+    "NK cells": {
+      "genes": ["GNLY", "NKG7", "NCAM1", "KLRD1", "KLRF1"],
+      "description": "Natural killer cells"
+    },
+    "CD14+ Monocytes": {
+      "genes": ["CD14", "LYZ", "S100A8", "S100A9", "FCN1"],
+      "description": "Classical monocytes"
+    },
+    "FCGR3A+ Monocytes": {
+      "genes": ["FCGR3A", "MS4A7", "CD16"],
+      "description": "Non-classical monocytes"
+    },
+    "Dendritic cells": {
+      "genes": ["FCER1A", "CST3", "CLEC10A"],
+      "description": "Antigen-presenting cells"
+    },
+    "Plasmacytoid dendritic cells": {
+      "genes": ["IL3RA", "GZMB", "SERPINF1", "ITM2C"],
+      "description": "pDCs, interferon producers"
+    },
+    "Megakaryocytes": {
+      "genes": ["PPBP", "PF4", "ITGA2B", "GP9"],
+      "description": "Platelet precursors"
+    }
+  }
+}

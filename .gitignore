@@ -178,3 +178,14 @@ tests/**/Data_files/
 
 .claude/
 CLAUDE.md
+
+# test results
+TEST_RESULTS_SUMMARY.md
+FINAL_TEST_STATUS.md
+PLAN_EXECUTION.md
+PLAN_VALIDATION.md
+PLAN_EXECUTION_SUMMARY.md
+PLAN_VALIDATION_SUMMARY.md
+
+# readme
+README.md

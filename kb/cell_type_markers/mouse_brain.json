@@ -1,0 +1,55 @@
+{
+  "_metadata": {
+    "species": "mouse",
+    "tissue": "brain",
+    "version": "1.0",
+    "source": "Literature-curated markers from Zeisel et al. 2018, Saunders et al. 2018",
+    "citations": [
+      "Zeisel et al. (2018) Cell - Molecular Architecture of the Mouse Nervous System",
+      "Saunders et al. (2018) Cell - Molecular Diversity and Specializations among the Cells of the Adult Mouse Brain"
+    ],
+    "updated": "2025-01-09"
+  },
+  "markers": {
+    "Excitatory neurons": {
+      "genes": ["Slc17a7", "Neurod6", "Satb2", "Tbr1", "Fezf2"],
+      "description": "Glutamatergic neurons"
+    },
+    "Inhibitory neurons": {
+      "genes": ["Gad1", "Gad2", "Slc32a1", "Dlx1", "Dlx5"],
+      "description": "GABAergic interneurons"
+    },
+    "Astrocytes": {
+      "genes": ["Gfap", "Aqp4", "Slc1a2", "Slc1a3", "Aldh1l1"],
+      "description": "Glial cells"
+    },
+    "Oligodendrocytes": {
+      "genes": ["Mog", "Mbp", "Plp1", "Mag", "Mobp"],
+      "description": "Myelinating glia"
+    },
+    "Oligodendrocyte precursor cells": {
+      "genes": ["Pdgfra", "Cspg4", "Vcan", "Sox10"],
+      "description": "OPCs"
+    },
+    "Microglia": {
+      "genes": ["C1qa", "C1qb", "C1qc", "Cx3cr1", "P2ry12", "Tmem119"],
+      "description": "Resident immune cells"
+    },
+    "Endothelial cells": {
+      "genes": ["Cldn5", "Flt1", "Pecam1", "Vwf"],
+      "description": "Blood vessel endothelium"
+    },
+    "Pericytes": {
+      "genes": ["Pdgfrb", "Rgs5", "Abcc9", "Kcnj8"],
+      "description": "Vascular mural cells"
+    },
+    "Ependymal cells": {
+      "genes": ["Foxj1", "Dnah12", "Rsph1"],
+      "description": "Ciliated cells lining ventricles"
+    },
+    "Choroid plexus": {
+      "genes": ["Ttr", "Folr1", "Aqp1"],
+      "description": "CSF-producing epithelium"
+    }
+  }
+}

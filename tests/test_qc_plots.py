@@ -68,13 +68,14 @@ class TestQCPlots:
     def test_plot_qc_no_scanpy(self):
         """Test QC plotting when scanpy is not available."""
         from scqc_agent.tools.plots.qc import SCANPY_AVAILABLE, plot_qc
-        
+
         if SCANPY_AVAILABLE:
             pytest.skip("Scanpy is available, cannot test fallback behavior")
-        
-        state = SessionState(adata_path="test.h5ad", run_dir=str(self.temp_path))
+
+        state = SessionState(run_id="test_run")
+        state.adata_path = "test.h5ad"
         result = plot_qc(state)
-        
+
         assert "Scanpy not available" in result.message
         assert result.state_delta == {}
         assert len(result.artifacts) == 0

@@ -215,6 +215,7 @@ def run_scar(
         noise_percentage = (noise_removed / original_total * 100) if original_total > 0 and not replace_X else 0
         
         state_delta = {
+            "adata_path": str(checkpoint_path),  # Update to point to denoised checkpoint
             "scar_epochs": epochs,
             "scar_batch_key": batch_key,
             "denoised_total_counts": float(denoised_total),

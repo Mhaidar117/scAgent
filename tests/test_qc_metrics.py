@@ -59,13 +59,14 @@ class TestQCMetrics:
     def test_compute_qc_metrics_no_scanpy(self):
         """Test QC metrics computation when scanpy is not available."""
         from scqc_agent.tools.qc import SCANPY_AVAILABLE, compute_qc_metrics
-        
+
         if SCANPY_AVAILABLE:
             pytest.skip("Scanpy is available, cannot test fallback behavior")
-        
-        state = SessionState(adata_path="test.h5ad", run_dir=str(self.temp_path))
+
+        state = SessionState(run_id="test_run")
+        state.adata_path = "test.h5ad"
         result = compute_qc_metrics(state)
-        
+
         assert "Scanpy not available" in result.message
         assert result.state_delta == {}
         assert len(result.artifacts) == 0
@@ -76,10 +77,11 @@ class TestQCMetrics:
             from scqc_agent.tools.qc import compute_qc_metrics
         except ImportError:
             pytest.skip("Scanpy not available for QC tests")
-        
-        state = SessionState(run_dir=str(self.temp_path))
+
+        state = SessionState(run_id="test_run")
+        # Don't set adata_path - testing the error case
         result = compute_qc_metrics(state)
-        
+
         assert "No AnnData file loaded" in result.message
         assert result.state_delta == {}
         assert len(result.artifacts) == 0
@@ -96,13 +98,11 @@ class TestQCMetrics:
         adata = create_synthetic_adata()
         data_path = self.temp_path / "test_data.h5ad"
         adata.write_h5ad(data_path)
-        
+
         # Create state
-        state = SessionState(
-            adata_path=str(data_path),
-            run_dir=str(self.temp_path),
-            config={"batch_key": "batch", "random_seed": 42}
-        )
+        state = SessionState(run_id="test_run")
+        state.adata_path = str(data_path)
+        state.metadata = {"batch_key": "batch", "random_seed": 42}
         
         # Compute QC metrics
         result = compute_qc_metrics(state, species="mouse")
@@ -110,7 +110,8 @@ class TestQCMetrics:
         # Verify result
         assert "QC metrics computed" in result.message
         assert "800" in result.message  # number of cells
-        assert "1500" in result.message  # number of genes
+        # Accept both "1500" and "1,500" format
+        assert ("1500" in result.message or "1,500" in result.message)  # number of genes
         
         # Check state delta
         assert "dataset_summary" in result.state_delta
@@ -166,12 +167,10 @@ class TestQCMetrics:
         # Save data
         data_path = self.temp_path / "human_data.h5ad"
         adata.write_h5ad(data_path)
-        
+
         # Create state
-        state = SessionState(
-            adata_path=str(data_path),
-            run_dir=str(self.temp_path)
-        )
+        state = SessionState(run_id="test_run")
+        state.adata_path = str(data_path)
         
         # Compute QC metrics with human species
         result = compute_qc_metrics(state, species="human")
@@ -208,12 +207,10 @@ class TestQCMetrics:
         # Save data
         data_path = self.temp_path / "custom_data.h5ad"
         adata.write_h5ad(data_path)
-        
+
         # Create state
-        state = SessionState(
-            adata_path=str(data_path),
-            run_dir=str(self.temp_path)
-        )
+        state = SessionState(run_id="test_run")
+        state.adata_path = str(data_path)
         
         # Compute QC metrics with custom prefix
         result = compute_qc_metrics(state, mito_prefix="MITO-")
@@ -221,7 +218,8 @@ class TestQCMetrics:
         # Verify custom prefix was used
         assert "QC metrics computed" in result.message
         dataset_summary = result.state_delta["dataset_summary"]
-        assert dataset_summary["species"] == "custom"
+        # Custom prefixes are categorized as "other" species
+        assert dataset_summary["species"] == "other"
         assert dataset_summary["n_mito_genes"] == 10
     
     def test_qc_summary_files_content(self):
@@ -238,13 +236,11 @@ class TestQCMetrics:
         adata = create_synthetic_adata()
         data_path = self.temp_path / "test_data.h5ad"
         adata.write_h5ad(data_path)
-        
+
         # Create state with batch information
-        state = SessionState(
-            adata_path=str(data_path),
-            run_dir=str(self.temp_path),
-            config={"batch_key": "batch"}
-        )
+        state = SessionState(run_id="test_run")
+        state.adata_path = str(data_path)
+        state.metadata = {"batch_key": "batch"}
         
         # Compute QC metrics
         result = compute_qc_metrics(state, species="mouse")

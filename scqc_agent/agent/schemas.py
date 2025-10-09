@@ -384,6 +384,151 @@ class LoadDataInput(BaseModel):
         }
 
 
+# Marker Gene Detection Tool Schemas
+class DetectMarkerGenesInput(BaseModel):
+    """Input schema for detect_marker_genes tool."""
+
+    cluster_key: str = Field(
+        default="leiden",
+        description="Column in adata.obs containing cluster assignments"
+    )
+    method: Literal["t-test", "wilcoxon", "logreg"] = Field(
+        default="wilcoxon",
+        description="Statistical test for differential expression"
+    )
+    n_genes: int = Field(
+        default=25,
+        ge=5,
+        le=200,
+        description="Number of top marker genes to report per cluster"
+    )
+    use_raw: bool = Field(
+        default=False,
+        description="Use raw counts if available"
+    )
+    reference: str = Field(
+        default="rest",
+        description="Reference group for comparison"
+    )
+    species: Optional[Literal["human", "mouse"]] = Field(
+        default=None,
+        description="Species for gene filtering (auto-detected if not specified)"
+    )
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "cluster_key": "leiden",
+                "method": "wilcoxon",
+                "n_genes": 25,
+                "use_raw": False,
+                "reference": "rest",
+                "species": "human"
+            }
+        }
+
+
+# Cluster Annotation Tool Schemas
+class AnnotateClustersInput(BaseModel):
+    """Input schema for annotate_clusters tool."""
+
+    cluster_key: str = Field(
+        default="leiden",
+        description="Column in adata.obs with cluster assignments"
+    )
+    method: Literal["celltypist", "markers", "auto"] = Field(
+        default="auto",
+        description="Annotation method: celltypist, markers, or auto"
+    )
+    species: Literal["human", "mouse"] = Field(
+        default="human",
+        description="Species for marker selection"
+    )
+    tissue: Optional[str] = Field(
+        default=None,
+        description="Tissue type (brain, kidney, pbmc, etc.)"
+    )
+    celltypist_model: Optional[str] = Field(
+        default=None,
+        description="Specific CellTypist model to use"
+    )
+    majority_voting: bool = Field(
+        default=True,
+        description="Use majority voting for CellTypist predictions"
+    )
+    custom_markers_path: Optional[str] = Field(
+        default=None,
+        description="Path to custom marker JSON file"
+    )
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "cluster_key": "leiden",
+                "method": "auto",
+                "species": "human",
+                "tissue": "brain",
+                "majority_voting": True
+            }
+        }
+
+
+# Differential Expression Tool Schemas
+class CompareClustersInput(BaseModel):
+    """Input schema for compare_clusters tool."""
+
+    cluster_key: str = Field(
+        default="leiden",
+        description="Column in adata.obs with cluster assignments"
+    )
+    group1: Union[str, List[str]] = Field(
+        ...,
+        description="Cluster ID(s) for first group (e.g., '0' or ['0', '1'])"
+    )
+    group2: Union[str, List[str]] = Field(
+        ...,
+        description="Cluster ID(s) for second group (e.g., 'rest' or ['2', '3'])"
+    )
+    method: Literal["t-test", "wilcoxon", "logreg"] = Field(
+        default="wilcoxon",
+        description="Statistical test for differential expression"
+    )
+    use_raw: bool = Field(
+        default=False,
+        description="Use raw counts if available"
+    )
+    n_genes: int = Field(
+        default=100,
+        ge=10,
+        le=1000,
+        description="Number of top DE genes to report"
+    )
+    logfc_threshold: float = Field(
+        default=1.0,
+        ge=0.0,
+        description="Log2 fold change threshold for significance"
+    )
+    pval_threshold: float = Field(
+        default=0.05,
+        ge=0.0,
+        le=1.0,
+        description="Adjusted p-value threshold"
+    )
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "cluster_key": "leiden",
+                "group1": ["0", "1"],
+                "group2": ["2", "3"],
+                "method": "wilcoxon",
+                "n_genes": 100,
+                "logfc_threshold": 1.0,
+                "pval_threshold": 0.05
+            }
+        }
+
+
 # Tool registry mapping tool names to their input schemas
 TOOL_SCHEMAS = {
     "load_data": LoadDataInput,
@@ -397,6 +542,9 @@ TOOL_SCHEMAS = {
     "run_scvi": RunScviInput,
     "detect_doublets": DetectDoubletsInput,
     "apply_doublet_filter": ApplyDoubletFilterInput,
+    "detect_marker_genes": DetectMarkerGenesInput,
+    "annotate_clusters": AnnotateClustersInput,
+    "compare_clusters": CompareClustersInput,
 }
 
 
@@ -475,6 +623,9 @@ TOOL_DESCRIPTIONS = {
     "run_scvi": "Train scVI model for batch correction and latent representation learning",
     "detect_doublets": "Identify doublets (multi-cell droplets) using Scrublet or DoubletFinder",
     "apply_doublet_filter": "Remove detected doublets from the dataset",
+    "detect_marker_genes": "Detect marker genes for each cluster using differential expression analysis",
+    "annotate_clusters": "Annotate clusters with cell type labels using CellTypist or built-in markers",
+    "compare_clusters": "Perform differential expression analysis between cluster groups with volcano plots",
 }
 
 

@@ -1,0 +1,67 @@
+{
+  "_metadata": {
+    "species": "mouse",
+    "tissue": "kidney",
+    "version": "1.0",
+    "source": "Literature-curated markers from Park et al. 2018, Ransick et al. 2019",
+    "citations": [
+      "Park et al. (2018) Science - Single-cell transcriptomics of the mouse kidney reveals potential cellular targets of kidney disease",
+      "Ransick et al. (2019) eLife - Single-cell profiling reveals sex, lineage, and regional diversity in the mouse kidney"
+    ],
+    "updated": "2025-01-09"
+  },
+  "markers": {
+    "Podocytes": {
+      "genes": ["Nphs1", "Nphs2", "Podxl", "Wt1", "Magi2"],
+      "description": "Glomerular epithelial cells"
+    },
+    "Proximal tubule": {
+      "genes": ["Slc5a2", "Slc5a12", "Cubn", "Lrp2", "Slc34a1"],
+      "description": "PT cells"
+    },
+    "Loop of Henle": {
+      "genes": ["Slc12a1", "Umod", "Cldn16"],
+      "description": "Thin and thick ascending limb"
+    },
+    "Distal convoluted tubule": {
+      "genes": ["Slc12a3", "Trpm6", "Calb1"],
+      "description": "DCT"
+    },
+    "Collecting duct principal cells": {
+      "genes": ["Aqp2", "Aqp3", "Scnn1a", "Scnn1b"],
+      "description": "Principal cells"
+    },
+    "Collecting duct intercalated cells": {
+      "genes": ["Slc4a1", "Atp6v1b1", "Atp6v0d2", "Slc26a4"],
+      "description": "Intercalated cells"
+    },
+    "Endothelial cells": {
+      "genes": ["Pecam1", "Vwf", "Flt1", "Kdr", "Plvap"],
+      "description": "Vascular endothelium"
+    },
+    "Mesangial cells": {
+      "genes": ["Pdgfrb", "Ren1", "Acta2", "Myh11"],
+      "description": "Mesangium"
+    },
+    "Parietal epithelial cells": {
+      "genes": ["Pax8", "Cldn1", "Cdh1"],
+      "description": "Bowman's capsule"
+    },
+    "Macrophages": {
+      "genes": ["Cd68", "C1qa", "C1qb", "Lyz2"],
+      "description": "Resident macrophages"
+    },
+    "T cells": {
+      "genes": ["Cd3d", "Cd3e", "Cd3g", "Il7r"],
+      "description": "T lymphocytes"
+    },
+    "B cells": {
+      "genes": ["Cd79a", "Ms4a1", "Cd19"],
+      "description": "B lymphocytes"
+    },
+    "Fibroblasts": {
+      "genes": ["Col1a1", "Col3a1", "Dcn", "Lum"],
+      "description": "Interstitial fibroblasts"
+    }
+  }
+}

@@ -334,12 +334,16 @@ class Agent:
             "plot_qc": self._plot_qc_tool,
             "apply_qc_filters": self._apply_qc_filters_tool,
             "quick_graph": self._quick_graph_tool,
+            "graph_from_rep": self._graph_from_rep_tool,
             "run_scar": self._run_scar_tool,
             "run_scvi": self._run_scvi_tool,
             "detect_doublets": self._detect_doublets_tool,
             "apply_doublet_filter": self._apply_doublet_filter_tool,
             "final_graph": self._final_graph_tool,
             "batch_diagnostics": self._batch_diagnostics_tool,
+            "detect_marker_genes": self._detect_marker_genes_tool,
+            "annotate_clusters": self._annotate_clusters_tool,
+            "compare_clusters": self._compare_clusters_tool,
         }
     
     def _add_phase8_tools(self) -> None:
@@ -1206,7 +1210,12 @@ class Agent:
         """Quick graph tool wrapper."""
         from ..tools.graph import quick_graph
         return quick_graph(self.state, **params)
-    
+
+    def _graph_from_rep_tool(self, params: Dict[str, Any]) -> ToolResult:
+        """Graph from representation tool wrapper."""
+        from ..tools.graph import graph_from_rep
+        return graph_from_rep(self.state, **params)
+
     def _run_scar_tool(self, params: Dict[str, Any]) -> ToolResult:
         """scAR tool wrapper."""
         from ..tools.scar import run_scar
@@ -1231,7 +1240,22 @@ class Agent:
         """Final graph tool wrapper."""
         from ..tools.graph import final_graph
         return final_graph(self.state, **params)
-    
+
+    def _detect_marker_genes_tool(self, params: Dict[str, Any]) -> ToolResult:
+        """Marker gene detection tool wrapper."""
+        from ..tools.markers import detect_marker_genes
+        return detect_marker_genes(self.state, **params)
+
+    def _annotate_clusters_tool(self, params: Dict[str, Any]) -> ToolResult:
+        """Cluster annotation tool wrapper."""
+        from ..tools.annotation import annotate_clusters
+        return annotate_clusters(self.state, **params)
+
+    def _compare_clusters_tool(self, params: Dict[str, Any]) -> ToolResult:
+        """Differential expression tool wrapper."""
+        from ..tools.differential_expression import compare_clusters
+        return compare_clusters(self.state, **params)
+
     # Phase 8 tool wrappers
     def _suggest_tissue_thresholds_tool(self, params: Dict[str, Any]) -> ToolResult:
         """Tissue-aware threshold suggestion tool wrapper."""
