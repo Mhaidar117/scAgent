@@ -674,6 +674,48 @@ class CompareClustersInput(BaseModel):
         }
 
 
+# Checkpoint Visualization Tool Schemas
+class GenerateCheckpointUmapInput(BaseModel):
+    """Input schema for generate_checkpoint_umap tool."""
+
+    stage_label: str = Field(
+        ...,
+        description="Stage name (e.g., 'postSCAR', 'postDoublets')"
+    )
+    layer: Optional[str] = Field(
+        default=None,
+        description="Layer to use as X (e.g., 'counts_denoised'). If None, uses current X"
+    )
+    resolution: float = Field(
+        default=2.0,
+        ge=0.1,
+        le=5.0,
+        description="Leiden clustering resolution"
+    )
+    n_pcs: int = Field(
+        default=40,
+        ge=10,
+        le=100,
+        description="Number of principal components"
+    )
+    random_seed: int = Field(
+        default=42,
+        ge=0,
+        description="Random seed for reproducibility"
+    )
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "stage_label": "postSCAR",
+                "layer": "counts_denoised",
+                "resolution": 2.0,
+                "n_pcs": 40,
+                "random_seed": 42
+            }
+        }
+
+
 # Multi-file Loader Tool Schemas
 class LoadKidneyDataInput(BaseModel):
     """Input schema for load_kidney_data tool.
@@ -777,6 +819,7 @@ TOOL_SCHEMAS = {
     "detect_marker_genes": DetectMarkerGenesInput,
     "annotate_clusters": AnnotateClustersInput,
     "compare_clusters": CompareClustersInput,
+    "generate_checkpoint_umap": GenerateCheckpointUmapInput,
 }
 
 
@@ -862,6 +905,7 @@ TOOL_DESCRIPTIONS = {
     "detect_marker_genes": "Detect marker genes for each cluster using differential expression analysis",
     "annotate_clusters": "Annotate clusters with cell type labels using CellTypist or built-in markers",
     "compare_clusters": "Perform differential expression analysis between cluster groups with volcano plots",
+    "generate_checkpoint_umap": "Generate UMAP visualization at pipeline checkpoint without modifying data",
 }
 
 
