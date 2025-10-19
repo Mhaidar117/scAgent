@@ -362,6 +362,7 @@ def apply_doublet_filter(
         # Use custom threshold or existing predictions
         if threshold is not None:
             # Apply custom threshold
+            
             doublet_mask = adata.obs['doublet_score'] > threshold
             adata.obs['doublet'] = doublet_mask
         else:
