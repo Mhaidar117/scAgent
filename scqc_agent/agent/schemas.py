@@ -529,9 +529,93 @@ class CompareClustersInput(BaseModel):
         }
 
 
+# Multi-file Loader Tool Schemas
+class LoadKidneyDataInput(BaseModel):
+    """Input schema for load_kidney_data tool.
+
+    Loads kidney scRNA-seq datasets consisting of raw 10X HDF5, filtered 10X HDF5,
+    and metadata CSV files. Validates file existence and formats.
+    """
+
+    raw_h5_path: str = Field(
+        ...,
+        description="Path to raw (unfiltered) 10X HDF5 matrix file containing all droplets"
+    )
+    filtered_h5_path: str = Field(
+        ...,
+        description="Path to filtered 10X HDF5 matrix file containing cells only"
+    )
+    meta_csv_path: str = Field(
+        ...,
+        description="Path to metadata CSV file with sample annotations (species, sex, age, tissue_type, etc.)"
+    )
+    sample_id_column: str = Field(
+        default="sample_ID",
+        description="Column name in metadata CSV containing sample identifiers"
+    )
+    metadata_merge_column: Optional[str] = Field(
+        default=None,
+        description="Column in metadata to merge with AnnData.obs (defaults to sample_id_column)"
+    )
+    make_unique: bool = Field(
+        default=True,
+        description="Make gene names unique by appending suffixes to duplicates"
+    )
+
+    @validator('raw_h5_path')
+    def raw_h5_must_exist(cls, v):
+        """Validate raw H5 file exists and has correct extension."""
+        path = Path(v)
+        if not path.exists():
+            raise ValueError(f'Raw H5 file does not exist: {v}')
+        if not path.suffix.lower() in ['.h5', '.hdf5']:
+            raise ValueError(f'Raw file must be a 10X H5 file (.h5 or .hdf5): {v}')
+        return str(path.absolute())
+
+    @validator('filtered_h5_path')
+    def filtered_h5_must_exist(cls, v):
+        """Validate filtered H5 file exists and has correct extension."""
+        path = Path(v)
+        if not path.exists():
+            raise ValueError(f'Filtered H5 file does not exist: {v}')
+        if not path.suffix.lower() in ['.h5', '.hdf5']:
+            raise ValueError(f'Filtered file must be a 10X H5 file (.h5 or .hdf5): {v}')
+        return str(path.absolute())
+
+    @validator('meta_csv_path')
+    def meta_csv_must_exist(cls, v):
+        """Validate metadata CSV file exists and has correct extension."""
+        path = Path(v)
+        if not path.exists():
+            raise ValueError(f'Metadata CSV file does not exist: {v}')
+        if not path.suffix.lower() == '.csv':
+            raise ValueError(f'Metadata file must be a CSV file (.csv): {v}')
+        return str(path.absolute())
+
+    @validator('sample_id_column')
+    def sample_id_column_not_empty(cls, v):
+        """Validate sample ID column name is not empty."""
+        if not v or not v.strip():
+            raise ValueError('sample_id_column cannot be empty')
+        return v.strip()
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "raw_h5_path": "data/kidney_raw.h5",
+                "filtered_h5_path": "data/kidney_filtered.h5",
+                "meta_csv_path": "data/kidney_metadata.csv",
+                "sample_id_column": "sample_ID",
+                "metadata_merge_column": None,
+                "make_unique": True
+            }
+        }
+
+
 # Tool registry mapping tool names to their input schemas
 TOOL_SCHEMAS = {
     "load_data": LoadDataInput,
+    "load_kidney_data": LoadKidneyDataInput,
     "compute_qc_metrics": ComputeQCMetricsInput,
     "plot_qc": PlotQCMetricsInput,
     "apply_qc_filters": ApplyQCFiltersInput,
@@ -613,6 +697,7 @@ def list_available_tools() -> List[str]:
 # Tool description metadata
 TOOL_DESCRIPTIONS = {
     "load_data": "Import AnnData files (.h5ad) into the session for analysis",
+    "load_kidney_data": "Load kidney scRNA-seq datasets from raw 10X H5, filtered 10X H5, and metadata CSV files",
     "compute_qc_metrics": "Calculate quality control metrics including mitochondrial percentages and gene counts",
     "plot_qc": "Generate visualizations of QC metrics to assess data quality",
     "apply_qc_filters": "Apply quality control filters to remove low-quality cells and genes",

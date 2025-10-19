@@ -330,6 +330,7 @@ class Agent:
         """Initialize registry of available tools."""
         self.tools = {
             "load_data": self._load_data_tool,
+        "load_kidney_data": self._load_kidney_data_tool,
             "compute_qc_metrics": self._compute_qc_tool,
             "plot_qc": self._plot_qc_tool,
             "apply_qc_filters": self._apply_qc_filters_tool,
@@ -1180,6 +1181,22 @@ class Agent:
             )
     
         
+
+    def _load_kidney_data_tool(self, params: Dict[str, Any]) -> ToolResult:
+        """Wrapper for load_kidney_data tool.
+
+        Loads kidney scRNA-seq datasets from raw 10X H5, filtered 10X H5,
+        and metadata CSV files.
+
+        Args:
+            params: Tool parameters from agent plan
+
+        Returns:
+            ToolResult with loaded data checkpoints and artifacts
+        """
+        from ..tools.multiload import load_kidney_data
+        return load_kidney_data(self.state, **params)
+
     def _validate_data_loaded(self) -> bool:
         """Check if AnnData file is loaded."""
         return bool(self.state.adata_path and Path(self.state.adata_path).exists())
