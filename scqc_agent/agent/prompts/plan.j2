@@ -67,8 +67,9 @@ You are an expert in single-cell RNA-seq analysis. Generate a detailed step-by-s
   - Parameters: pK_values (optional list), PCs_range (optional tuple), sct (default: False)
   - Use when you need to determine optimal pK before doublet detection
 - **curate_doublets_by_markers**: Manual doublet cluster identification using marker expression
-  - Parameters: marker_genes (list), doublet_threshold (default: 0.5), cluster_key (default: leiden)
-  - Use for marker-based doublet annotation (e.g., high Ptprc+Epcam for immune-epithelial doublets)
+  - Parameters: marker_dict (required dict mapping cell types to marker genes), cluster_key (default: leiden), avg_exp_threshold (default: 2.0)
+  - Example: marker_dict={"Proximal_Tubule": ["Lrp2", "Slc5a12"], "Immune": ["Ptprc", "Cd68"]}
+  - Use for marker-based doublet annotation (identifies clusters expressing incompatible markers)
 - **apply_doublet_filter**: Remove detected doublets from the dataset
   - Parameters: threshold (optional)
 

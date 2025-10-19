@@ -207,7 +207,10 @@ def compute_qc_metrics(
         # Save snapshot
         run_dir_path = f"runs/{state.run_id}"
         snapshot_result = save_snapshot("step04", run_dir_path, adata)
-        
+
+        # Get snapshot path from artifacts (first artifact is the snapshot)
+        snapshot_path_str = str(snapshot_result.artifacts[0]) if snapshot_result.artifacts else None
+
         # Update dataset summary
         dataset_summary = state.dataset_summary.copy()
         dataset_summary.update({
@@ -216,13 +219,18 @@ def compute_qc_metrics(
             "n_mito_genes": int(adata.var['mt'].sum()),
             "qc_metrics": qc_summary["qc_metrics"]
         })
-        
+
+        # CRITICAL: Update adata_path so subsequent tools load data with QC metrics
+        state_delta = {"dataset_summary": dataset_summary}
+        if snapshot_path_str:
+            state_delta["adata_path"] = snapshot_path_str
+
         return ToolResult(
             message=(
                 f"QC metrics computed for {adata.n_obs:,} cells, {adata.n_vars:,} genes. "
                 f"Species: {species}, Mitochondrial genes: {adata.var['mt'].sum()}"
             ),
-            state_delta={"dataset_summary": dataset_summary},
+            state_delta=state_delta,
             artifacts=[summary_path, json_path] + snapshot_result.artifacts,
             citations=[
                 "Luecken & Theis (2019) Mol Syst Biol",
