@@ -1,6 +1,6 @@
 """Pydantic schemas for tool input validation and output serialization."""
 
-from typing import Dict, Any, List, Optional, Literal, Union
+from typing import Dict, Any, List, Optional, Literal, Union, Tuple
 from pydantic import BaseModel, Field, validator
 from pathlib import Path
 

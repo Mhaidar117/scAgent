@@ -1,0 +1,183 @@
+{
+  "markers": {
+    "PTS1": {
+      "genes": ["Lrp2", "Slc5a12"],
+      "class": "PT",
+      "type": "EPITHELIAL",
+      "description": "Proximal Tubule S1 segment"
+    },
+    "PTS2": {
+      "genes": ["Lrp2", "Slc13a3"],
+      "class": "PT",
+      "type": "EPITHELIAL",
+      "description": "Proximal Tubule S2 segment"
+    },
+    "PTS3": {
+      "genes": ["Lrp2", "Slc16a9"],
+      "class": "PT",
+      "type": "EPITHELIAL",
+      "description": "Proximal Tubule S3 segment"
+    },
+    "DTL": {
+      "genes": ["Epha7", "Cryab"],
+      "class": "DTL",
+      "type": "EPITHELIAL",
+      "description": "Descending Thin Limb"
+    },
+    "TALA": {
+      "genes": ["Slc12a1", "Cldn16"],
+      "class": "TAL",
+      "type": "EPITHELIAL",
+      "description": "Thick Ascending Limb A"
+    },
+    "TALB": {
+      "genes": ["Slc12a1", "Cldn10"],
+      "class": "TAL",
+      "type": "EPITHELIAL",
+      "description": "Thick Ascending Limb B"
+    },
+    "MD": {
+      "genes": ["Nos1", "Slc12a1"],
+      "class": "TAL",
+      "type": "EPITHELIAL",
+      "description": "Macula Densa"
+    },
+    "DCT1": {
+      "genes": ["Slc12a3", "Egf"],
+      "class": "DCT",
+      "type": "EPITHELIAL",
+      "description": "Distal Convoluted Tubule 1"
+    },
+    "DCT2": {
+      "genes": ["Slc12a3", "Slc8a1"],
+      "class": "DCT",
+      "type": "EPITHELIAL",
+      "description": "Distal Convoluted Tubule 2"
+    },
+    "CNT": {
+      "genes": ["Slc8a1"],
+      "class": "CNT",
+      "type": "EPITHELIAL",
+      "description": "Connecting Tubule"
+    },
+    "PC": {
+      "genes": ["Aqp2"],
+      "class": "PC",
+      "type": "EPITHELIAL",
+      "description": "Principal Cells"
+    },
+    "ICA": {
+      "genes": ["Slc4a1", "Kit"],
+      "class": "ICA",
+      "type": "EPITHELIAL",
+      "description": "Intercalated Cells A"
+    },
+    "ICB": {
+      "genes": ["Slc26a4"],
+      "class": "ICB",
+      "type": "EPITHELIAL",
+      "description": "Intercalated Cells B"
+    },
+    "PODO": {
+      "genes": ["Nphs1", "Nphs2"],
+      "class": "PODO",
+      "type": "EPITHELIAL",
+      "description": "Podocytes"
+    },
+    "EC": {
+      "genes": ["Flt1", "Emcn", "Pecam1"],
+      "class": "EC",
+      "type": "ENDOTHELIAL",
+      "description": "Endothelial Cells"
+    },
+    "FIB": {
+      "genes": ["Pdgfra", "Col1a1"],
+      "class": "FIB",
+      "type": "STROMAL",
+      "description": "Fibroblasts"
+    },
+    "MES": {
+      "genes": ["Pdgfrb", "Piezo2"],
+      "class": "MES",
+      "type": "STROMAL",
+      "description": "Mesangial Cells"
+    },
+    "LYMPHO": {
+      "genes": ["Ptprc", "Skap1"],
+      "class": "IMMUNE",
+      "type": "IMMUNE",
+      "description": "Lymphocytes"
+    },
+    "MACRO": {
+      "genes": ["Ptprc", "Cd74", "Cd68"],
+      "class": "IMMUNE",
+      "type": "IMMUNE",
+      "description": "Macrophages"
+    },
+    "PEC": {
+      "genes": ["Ncam1"],
+      "class": "PEC",
+      "type": "EPITHELIAL",
+      "description": "Parietal Epithelial Cells"
+    },
+    "URO": {
+      "genes": ["Upk1b"],
+      "class": "URO",
+      "type": "EPITHELIAL",
+      "description": "Urothelial Cells"
+    },
+    "VSMC": {
+      "genes": ["Acta2", "Pdgfrb"],
+      "class": "VSMC",
+      "type": "STROMAL",
+      "description": "Vascular Smooth Muscle Cells"
+    }
+  },
+  "hierarchy": {
+    "subclass_to_class": {
+      "PTS1": "PT",
+      "PTS2": "PT",
+      "PTS3": "PT",
+      "DTL": "DTL",
+      "TALA": "TAL",
+      "TALB": "TAL",
+      "MD": "TAL",
+      "DCT1": "DCT",
+      "DCT2": "DCT",
+      "CNT": "CNT",
+      "PC": "PC",
+      "ICA": "ICA",
+      "ICB": "ICB",
+      "PODO": "PODO",
+      "EC": "EC",
+      "FIB": "FIB",
+      "MES": "MES",
+      "LYMPHO": "IMMUNE",
+      "MACRO": "IMMUNE",
+      "PEC": "PEC",
+      "URO": "URO",
+      "VSMC": "VSMC"
+    },
+    "class_to_type": {
+      "PT": "EPITHELIAL",
+      "DTL": "EPITHELIAL",
+      "TAL": "EPITHELIAL",
+      "DCT": "EPITHELIAL",
+      "CNT": "EPITHELIAL",
+      "PC": "EPITHELIAL",
+      "ICA": "EPITHELIAL",
+      "ICB": "EPITHELIAL",
+      "PODO": "EPITHELIAL",
+      "EC": "ENDOTHELIAL",
+      "FIB": "STROMAL",
+      "MES": "STROMAL",
+      "IMMUNE": "IMMUNE",
+      "PEC": "EPITHELIAL",
+      "URO": "EPITHELIAL",
+      "VSMC": "STROMAL"
+    }
+  },
+  "species": "mouse",
+  "tissue": "kidney",
+  "description": "Mouse kidney cell type markers with 3-level hierarchy (subclass → class → type)"
+}

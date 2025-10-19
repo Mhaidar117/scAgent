@@ -198,14 +198,23 @@ class Agent:
         
         Available tools:
         - load_data: Load AnnData files
+        - load_kidney_data: Load kidney scRNA-seq (raw H5, filtered H5, metadata CSV)
         - compute_qc_metrics: Calculate QC metrics (species: human/mouse/other)
         - plot_qc: Generate QC plots
         - apply_qc_filters: Filter cells/genes
-        - quick_graph: PCA→neighbors→UMAP→Leiden
-        - run_scar: scAR denoising
-        - run_scvi: scVI integration
-        - detect_doublets: Doublet detection
+        - generate_knee_plot: Visualize droplets and calculate ambient RNA profile
+        - run_scar: scAR denoising (supports raw data for ambient correction)
+        - generate_checkpoint_umap: Generate UMAP at any pipeline stage
+        - detect_doublets: Doublet detection (scrublet or doubletfinder with pK sweep)
+        - run_pk_sweep: Optimize DoubletFinder pK parameter
+        - curate_doublets_by_markers: Manual doublet curation by marker expression
         - apply_doublet_filter: Remove doublets
+        - quick_graph: PCA→neighbors→UMAP→Leiden
+        - graph_from_rep: Build graph from representation (X_pca, X_scVI, etc.)
+        - run_scvi: scVI integration
+        - detect_marker_genes: Find cluster markers
+        - annotate_clusters: Cell type annotation
+        - compare_clusters: Differential expression
         - final_graph: Final analysis
         
         Return a JSON array of step objects with "tool", "description", and "params":
@@ -330,7 +339,7 @@ class Agent:
         """Initialize registry of available tools."""
         self.tools = {
             "load_data": self._load_data_tool,
-        "load_kidney_data": self._load_kidney_data_tool,
+            "load_kidney_data": self._load_kidney_data_tool,
             "compute_qc_metrics": self._compute_qc_tool,
             "plot_qc": self._plot_qc_tool,
             "apply_qc_filters": self._apply_qc_filters_tool,
@@ -345,6 +354,11 @@ class Agent:
             "detect_marker_genes": self._detect_marker_genes_tool,
             "annotate_clusters": self._annotate_clusters_tool,
             "compare_clusters": self._compare_clusters_tool,
+            # New kidney pipeline tools
+            "generate_knee_plot": self._generate_knee_plot_tool,
+            "run_pk_sweep": self._run_pk_sweep_tool,
+            "curate_doublets_by_markers": self._curate_doublets_by_markers_tool,
+            "generate_checkpoint_umap": self._generate_checkpoint_umap_tool,
         }
     
     def _add_phase8_tools(self) -> None:
@@ -1257,6 +1271,28 @@ class Agent:
         """Final graph tool wrapper."""
         from ..tools.graph import final_graph
         return final_graph(self.state, **params)
+
+    # === NEW KIDNEY PIPELINE TOOLS ===
+
+    def _generate_knee_plot_tool(self, params: Dict[str, Any]) -> ToolResult:
+        """Knee plot generation tool wrapper."""
+        from ..tools.scar import generate_knee_plot
+        return generate_knee_plot(self.state, **params)
+
+    def _run_pk_sweep_tool(self, params: Dict[str, Any]) -> ToolResult:
+        """DoubletFinder pK sweep tool wrapper."""
+        from ..tools.doublets import run_pk_sweep_only
+        return run_pk_sweep_only(self.state, **params)
+
+    def _curate_doublets_by_markers_tool(self, params: Dict[str, Any]) -> ToolResult:
+        """Manual doublet curation tool wrapper."""
+        from ..tools.doublets import curate_doublets_by_markers
+        return curate_doublets_by_markers(self.state, **params)
+
+    def _generate_checkpoint_umap_tool(self, params: Dict[str, Any]) -> ToolResult:
+        """Checkpoint visualization tool wrapper."""
+        from ..tools.checkpoint_viz import generate_checkpoint_umap
+        return generate_checkpoint_umap(self.state, **params)
 
     def _detect_marker_genes_tool(self, params: Dict[str, Any]) -> ToolResult:
         """Marker gene detection tool wrapper."""
