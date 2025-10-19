@@ -235,7 +235,7 @@ class FinalGraphInput(BaseModel):
 # scAR Tool Schemas
 class RunScarInput(BaseModel):
     """Input schema for run_scar tool."""
-    
+
     batch_key: str = Field(
         default="SampleID",
         description="Column in adata.obs for batch information"
@@ -255,14 +255,56 @@ class RunScarInput(BaseModel):
         ge=0,
         description="Random seed for reproducibility"
     )
-    
+    use_raw_data: bool = Field(
+        default=True,
+        description="Whether to use raw data if available (enables scvi.external.SCAR mode)"
+    )
+    prob: float = Field(
+        default=0.995,
+        ge=0.9,
+        le=0.999,
+        description="Probability threshold for ambient profile estimation (scvi.external.SCAR mode)"
+    )
+    min_ambient_counts: int = Field(
+        default=100,
+        ge=10,
+        le=1000,
+        description="Threshold for cell-free droplets (used in ambient profile calculation)"
+    )
+
     class Config:
         schema_extra = {
             "example": {
                 "batch_key": "batch",
                 "epochs": 100,
                 "replace_X": True,
-                "random_seed": 42
+                "random_seed": 42,
+                "use_raw_data": True,
+                "prob": 0.995,
+                "min_ambient_counts": 100
+            }
+        }
+
+
+class GenerateKneePlotInput(BaseModel):
+    """Input schema for generate_knee_plot tool."""
+
+    min_counts: int = Field(
+        default=100,
+        ge=10,
+        le=1000,
+        description="Threshold for classifying cell-free droplets"
+    )
+    output_dir: Optional[str] = Field(
+        default=None,
+        description="Optional output directory (defaults to step_08_scar_knee)"
+    )
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "min_counts": 100,
+                "output_dir": None
             }
         }
 
@@ -623,6 +665,7 @@ TOOL_SCHEMAS = {
     "graph_from_rep": GraphFromRepInput,
     "final_graph": FinalGraphInput,
     "run_scar": RunScarInput,
+    "generate_knee_plot": GenerateKneePlotInput,
     "run_scvi": RunScviInput,
     "detect_doublets": DetectDoubletsInput,
     "apply_doublet_filter": ApplyDoubletFilterInput,
@@ -704,7 +747,8 @@ TOOL_DESCRIPTIONS = {
     "quick_graph": "Perform PCA → neighbors → UMAP → Leiden clustering for quick analysis",
     "graph_from_rep": "Generate graph analysis from a specific representation (e.g., X_scVI)",
     "final_graph": "Final graph analysis step with optimized parameters",
-    "run_scar": "Apply scAR (single-cell Ambient Remover) for denoising ambient RNA",
+    "run_scar": "Apply scAR (single-cell Ambient Remover) for denoising ambient RNA with dual-mode support (scvi.external.SCAR or standalone)",
+    "generate_knee_plot": "Generate knee plot visualization showing droplet distribution and calculate ambient RNA profile",
     "run_scvi": "Train scVI model for batch correction and latent representation learning",
     "detect_doublets": "Identify doublets (multi-cell droplets) using Scrublet or DoubletFinder",
     "apply_doublet_filter": "Remove detected doublets from the dataset",

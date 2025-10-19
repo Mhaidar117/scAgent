@@ -1,5 +1,8 @@
 """I/O tools for loading and saving AnnData files."""
 
+import gzip
+import shutil
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -12,6 +15,62 @@ try:
     SCANPY_AVAILABLE = True
 except ImportError:
     SCANPY_AVAILABLE = False
+
+
+def read_h5ad_with_gz_support(path: str) -> object:
+    """Read h5ad file with automatic decompression of .gz files.
+
+    Scanpy cannot read .h5ad.gz files directly. This helper function:
+    1. Detects if file is compressed (.h5ad.gz or .h5.gz)
+    2. Decompresses to a temporary file if needed
+    3. Reads the h5ad file
+    4. Cleans up temporary file
+
+    Args:
+        path: Path to .h5ad or .h5ad.gz file
+
+    Returns:
+        AnnData object
+
+    Raises:
+        FileNotFoundError: If file does not exist
+        ValueError: If not an h5ad file
+    """
+    if not SCANPY_AVAILABLE:
+        raise ImportError("Scanpy is required. Install with: pip install scanpy")
+
+    file_path = Path(path)
+    if not file_path.exists():
+        raise FileNotFoundError(f"File not found: {path}")
+
+    # Check if file is gzipped
+    is_gzipped = str(file_path).endswith('.gz')
+
+    if is_gzipped:
+        # Decompress to temporary file
+        with tempfile.NamedTemporaryFile(suffix='.h5ad', delete=False) as tmp_file:
+            tmp_path = tmp_file.name
+
+            try:
+                # Decompress
+                with gzip.open(file_path, 'rb') as f_in:
+                    with open(tmp_path, 'wb') as f_out:
+                        shutil.copyfileobj(f_in, f_out)
+
+                # Read decompressed file
+                adata = sc.read_h5ad(tmp_path)
+
+                return adata
+
+            finally:
+                # Clean up temporary file
+                try:
+                    Path(tmp_path).unlink()
+                except Exception:
+                    pass
+    else:
+        # Read directly
+        return sc.read_h5ad(path)
 
 
 def load_anndata(path: str) -> ToolResult:
