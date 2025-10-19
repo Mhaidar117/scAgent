@@ -59,9 +59,9 @@ class PlotQCMetricsInput(BaseModel):
 
 class ApplyQCFiltersInput(BaseModel):
     """Input schema for apply_qc_filters tool."""
-    
-    min_genes: Optional[int] = Field(
-        default=None,
+
+    min_genes: int = Field(
+        default=1000,
         ge=0,
         description="Minimum number of genes per cell"
     )
@@ -70,52 +70,30 @@ class ApplyQCFiltersInput(BaseModel):
         ge=0,
         description="Maximum number of genes per cell"
     )
-    min_counts: Optional[int] = Field(
-        default=None,
-        ge=0,
-        description="Minimum total UMI counts per cell"
-    )
-    max_counts: Optional[int] = Field(
-        default=None,
-        ge=0,
-        description="Maximum total UMI counts per cell"
-    )
-    max_pct_mt: Optional[float] = Field(
-        default=None,
+    max_pct_mt: float = Field(
+        default=10.0,
         ge=0.0,
         le=100.0,
         description="Maximum mitochondrial percentage"
-    )
-    min_cells: Optional[int] = Field(
-        default=None,
-        ge=0,
-        description="Minimum number of cells expressing each gene"
     )
     method: Literal["threshold", "MAD", "quantile"] = Field(
         default="threshold",
         description="Filtering method to use"
     )
-    
+
     @validator('max_genes')
     def max_genes_greater_than_min(cls, v, values):
-        if v is not None and 'min_genes' in values and values['min_genes'] is not None:
+        if v is not None and 'min_genes' in values:
             if v <= values['min_genes']:
                 raise ValueError('max_genes must be greater than min_genes')
-        return v
-    
-    @validator('max_counts')
-    def max_counts_greater_than_min(cls, v, values):
-        if v is not None and 'min_counts' in values and values['min_counts'] is not None:
-            if v <= values['min_counts']:
-                raise ValueError('max_counts must be greater than min_counts')
         return v
     
     class Config:
         schema_extra = {
             "example": {
-                "min_genes": 200,
-                "max_pct_mt": 20.0,
-                "min_cells": 3,
+                "min_genes": 500,
+                "max_genes": 8000,
+                "max_pct_mt": 10.0,
                 "method": "threshold"
             }
         }
