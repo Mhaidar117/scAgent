@@ -349,7 +349,7 @@ class RunScviInput(BaseModel):
 # Doublet Detection Tool Schemas
 class DetectDoubletsInput(BaseModel):
     """Input schema for detect_doublets tool."""
-    
+
     method: Literal["scrublet", "doubletfinder"] = Field(
         default="scrublet",
         description="Doublet detection method"
@@ -360,37 +360,140 @@ class DetectDoubletsInput(BaseModel):
         le=0.5,
         description="Expected doublet rate"
     )
-    threshold: Optional[float] = Field(
-        default=None,
-        ge=0.0,
-        le=1.0,
-        description="Custom doublet score threshold (auto if not provided)"
+    threshold: Union[float, Literal["auto"]] = Field(
+        default="auto",
+        description="Custom doublet score threshold (auto for automatic detection)"
     )
-    
+    pK: Union[float, Literal["auto"]] = Field(
+        default="auto",
+        description="DoubletFinder neighborhood parameter (auto to optimize via sweep)"
+    )
+    pN: float = Field(
+        default=0.25,
+        ge=0.1,
+        le=0.5,
+        description="DoubletFinder proportion of artificial doublets"
+    )
+    n_prin_comps: int = Field(
+        default=30,
+        ge=10,
+        le=100,
+        description="Number of PCA components for DoubletFinder"
+    )
+    run_pk_sweep: bool = Field(
+        default=True,
+        description="Whether to run pK optimization sweep (DoubletFinder only)"
+    )
+    random_seed: int = Field(
+        default=0,
+        ge=0,
+        description="Random seed for reproducibility"
+    )
+
     class Config:
         schema_extra = {
             "example": {
-                "method": "scrublet",
+                "method": "doubletfinder",
                 "expected_rate": 0.06,
-                "threshold": None
+                "threshold": "auto",
+                "pK": "auto",
+                "pN": 0.25,
+                "n_prin_comps": 30,
+                "run_pk_sweep": True,
+                "random_seed": 0
             }
         }
 
 
 class ApplyDoubletFilterInput(BaseModel):
     """Input schema for apply_doublet_filter tool."""
-    
+
     threshold: Optional[float] = Field(
         default=None,
         ge=0.0,
         le=1.0,
         description="Custom threshold for filtering (uses detected threshold if not provided)"
     )
-    
+
     class Config:
         schema_extra = {
             "example": {
                 "threshold": None
+            }
+        }
+
+
+class RunPkSweepInput(BaseModel):
+    """Input schema for run_pk_sweep_only tool."""
+
+    pK_grid: Tuple[float, ...] = Field(
+        default=(0.005, 0.01, 0.02, 0.03, 0.05),
+        description="Tuple of pK values to test"
+    )
+    expected_rate: float = Field(
+        default=0.06,
+        ge=0.01,
+        le=0.5,
+        description="Expected doublet rate"
+    )
+    pN: float = Field(
+        default=0.25,
+        ge=0.1,
+        le=0.5,
+        description="Proportion of artificial doublets"
+    )
+    n_prin_comps: int = Field(
+        default=30,
+        ge=10,
+        le=100,
+        description="Number of PCA components"
+    )
+    random_seed: int = Field(
+        default=0,
+        ge=0,
+        description="Random seed for reproducibility"
+    )
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "pK_grid": (0.005, 0.01, 0.02, 0.03, 0.05),
+                "expected_rate": 0.06,
+                "pN": 0.25,
+                "n_prin_comps": 30,
+                "random_seed": 0
+            }
+        }
+
+
+class CurateDoubletsByMarkersInput(BaseModel):
+    """Input schema for curate_doublets_by_markers tool."""
+
+    marker_dict: Dict[str, List[str]] = Field(
+        ...,
+        description="Dictionary mapping cell type names to marker gene lists"
+    )
+    cluster_key: str = Field(
+        default="leiden",
+        description="Column in adata.obs containing cluster assignments"
+    )
+    avg_exp_threshold: float = Field(
+        default=2.0,
+        ge=0.1,
+        le=10.0,
+        description="Expression threshold for considering a marker expressed"
+    )
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "marker_dict": {
+                    "Proximal_Tubule": ["Lrp2", "Slc5a12"],
+                    "Endothelial": ["Flt1", "Emcn"],
+                    "Immune": ["Ptprc", "Cd68"]
+                },
+                "cluster_key": "leiden",
+                "avg_exp_threshold": 2.0
             }
         }
 
@@ -669,6 +772,8 @@ TOOL_SCHEMAS = {
     "run_scvi": RunScviInput,
     "detect_doublets": DetectDoubletsInput,
     "apply_doublet_filter": ApplyDoubletFilterInput,
+    "run_pk_sweep_only": RunPkSweepInput,
+    "curate_doublets_by_markers": CurateDoubletsByMarkersInput,
     "detect_marker_genes": DetectMarkerGenesInput,
     "annotate_clusters": AnnotateClustersInput,
     "compare_clusters": CompareClustersInput,
@@ -750,8 +855,10 @@ TOOL_DESCRIPTIONS = {
     "run_scar": "Apply scAR (single-cell Ambient Remover) for denoising ambient RNA with dual-mode support (scvi.external.SCAR or standalone)",
     "generate_knee_plot": "Generate knee plot visualization showing droplet distribution and calculate ambient RNA profile",
     "run_scvi": "Train scVI model for batch correction and latent representation learning",
-    "detect_doublets": "Identify doublets (multi-cell droplets) using Scrublet or DoubletFinder",
+    "detect_doublets": "Identify doublets (multi-cell droplets) using Scrublet or DoubletFinder with pK optimization",
     "apply_doublet_filter": "Remove detected doublets from the dataset",
+    "run_pk_sweep_only": "Run DoubletFinder pK parameter optimization without applying detection",
+    "curate_doublets_by_markers": "Manually identify doublet clusters based on incompatible marker co-expression",
     "detect_marker_genes": "Detect marker genes for each cluster using differential expression analysis",
     "annotate_clusters": "Annotate clusters with cell type labels using CellTypist or built-in markers",
     "compare_clusters": "Perform differential expression analysis between cluster groups with volcano plots",
