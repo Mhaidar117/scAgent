@@ -164,7 +164,7 @@ models/scar/
 Progress_Reports/
 
 #prompts
-Prompts/
+/Prompts/
 
 # Tests - keep tests but exclude test artifacts
 tests/**/runs/
