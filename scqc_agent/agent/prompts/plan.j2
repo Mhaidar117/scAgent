@@ -30,7 +30,8 @@ You are an expert in single-cell RNA-seq analysis. Generate a detailed step-by-s
 - **plot_qc**: Generate QC visualizations (violin plots, scatter plots, distributions)
   - Parameters: stage (pre/post), plot_type (violin/scatter/histogram)
 - **apply_qc_filters**: Apply filtering based on QC thresholds
-  - Parameters: min_genes, max_genes (optional), max_pct_mt, method (threshold/MAD/quantile)
+  - Parameters: min_genes (required), max_genes (optional), max_pct_mt (required), method (threshold/MAD/quantile)
+  - **NOTE**: Use min_genes (NOT min_counts) for filtering cells by gene count
 
 ### Graph Analysis and Visualization
 - **quick_graph**: Perform PCA → neighbors → UMAP → Leiden clustering
