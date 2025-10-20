@@ -1196,10 +1196,29 @@ class Agent:
                 # Use tissue-specific doublet rate
                 if "expected_doublet_rate" not in params:
                     params["expected_doublet_rate"] = thresholds.get("doublet_rate", 0.08)
-                
+
                 if detected_tissue:
                     enhanced_step["description"] = f"{step.get('description', 'Detect doublets')} (expected rate: {thresholds.get('doublet_rate', 0.08):.1%} for {detected_tissue})"
-            
+
+            # CRITICAL FIX: Enhance annotation tools with detected tissue type
+            elif tool == "annotate_clusters":
+                # Add species if detected
+                if detected_species and "species" not in params:
+                    params["species"] = detected_species
+                    print(f"Enhanced plan: Setting species={detected_species} for annotate_clusters")
+
+                # Add tissue if detected
+                if detected_tissue and "tissue" not in params:
+                    params["tissue"] = detected_tissue
+                    print(f"Enhanced plan: Setting tissue={detected_tissue} for annotate_clusters")
+                    enhanced_step["description"] = f"Annotate clusters using {detected_species or 'species'} {detected_tissue} markers"
+
+            # Also enhance marker detection with species
+            elif tool == "detect_marker_genes":
+                if detected_species and "species" not in params:
+                    params["species"] = detected_species
+                    print(f"Enhanced plan: Setting species={detected_species} for detect_marker_genes")
+
             enhanced_step["params"] = params
             enhanced_plan.append(enhanced_step)
         
