@@ -2,6 +2,7 @@
 """Streamlit interface for the scAgent plan/execute workflow with multi-file support."""
 
 import json
+import os
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -16,6 +17,27 @@ UPLOAD_DIR = Path("runs/streamlit_uploads")
 
 # File type helpers for artifact rendering
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".svg"}
+
+LLM_PROVIDER_OPTIONS = {
+    "Local Ollama": "ollama",
+    "OpenAI API": "openai",
+}
+
+
+def get_default_llm_provider() -> str:
+    """Return the default provider using environment configuration."""
+    configured = os.getenv("LLM_PROVIDER", "ollama")
+    normalized = configured.strip().lower() if configured else "ollama"
+    valid_values = set(LLM_PROVIDER_OPTIONS.values())
+    return normalized if normalized in valid_values else "ollama"
+
+
+def get_provider_label(provider_key: str) -> str:
+    """Return the display label for the given provider key."""
+    for label, key in LLM_PROVIDER_OPTIONS.items():
+        if key == provider_key:
+            return label
+    return "Local Ollama"
 
 
 def get_available_sessions() -> List[Dict[str, Any]]:
@@ -73,13 +95,21 @@ def initialize_agent() -> Agent:
     """Create or retrieve the agent instance for this Streamlit session."""
     # Check if we need to reload agent due to session change
     current_session = get_current_session_path()
+    provider = st.session_state.get("llm_provider", get_default_llm_provider())
 
-    if "agent" not in st.session_state or st.session_state.get("agent_session_path") != current_session:
+    if (
+        "agent" not in st.session_state
+        or st.session_state.get("agent_session_path") != current_session
+        or st.session_state.get("agent_provider") != provider
+    ):
         try:
             Path(current_session).parent.mkdir(parents=True, exist_ok=True)
-            st.session_state.agent = Agent(state_path=current_session)
+            st.session_state.agent = Agent(state_path=current_session, provider=provider)
             st.session_state.agent_session_path = current_session
+            st.session_state.agent_provider = provider
         except Exception as e:
+            st.session_state.agent = None
+            st.session_state.agent_provider = None
             st.error(f"Failed to initialize agent: {e}")
             st.exception(e)
             st.stop()
@@ -95,10 +125,35 @@ def initialize_app_state() -> None:
     st.session_state.setdefault("uploaded_files", {})
     st.session_state.setdefault("kidney_files_loaded", False)
     st.session_state.setdefault("processed_load_messages", [])
+    st.session_state.setdefault("llm_provider", get_default_llm_provider())
+    st.session_state.setdefault("agent_provider", None)
 
 
 def render_sidebar(agent: Agent) -> None:
     """Render sidebar with session metadata and dataset summaries."""
+    st.sidebar.header("🤖 LLM Provider")
+    provider_labels = list(LLM_PROVIDER_OPTIONS.keys())
+    current_provider = st.session_state.get("llm_provider", get_default_llm_provider())
+    current_label = get_provider_label(current_provider)
+    selected_label = st.sidebar.selectbox(
+        "Choose the language model backend:",
+        options=provider_labels,
+        index=provider_labels.index(current_label),
+        help="Switch between the local Ollama model and the OpenAI API",
+    )
+    selected_provider = LLM_PROVIDER_OPTIONS[selected_label]
+    st.sidebar.caption(f"Active backend: {selected_label}")
+    if selected_provider != current_provider:
+        st.session_state.llm_provider = selected_provider
+        st.session_state.pop("agent", None)
+        st.session_state.pop("agent_session_path", None)
+        st.session_state.pop("agent_provider", None)
+        st.sidebar.success(f"Switching to {selected_label}...")
+        st.rerun()
+    if selected_provider == "openai" and not os.getenv("OPENAI_API_KEY"):
+        st.sidebar.warning("OPENAI_API_KEY is not set. OpenAI requests will fail until configured.")
+
+    st.sidebar.divider()
     st.sidebar.header("🗂️ Session Management")
 
     # Display current session
@@ -535,6 +590,8 @@ def main() -> None:
         render_sidebar(agent)
 
         st.title("🧬 scQC Agent - Kidney scRNA-seq Analysis")
+        active_provider_label = get_provider_label(st.session_state.get("llm_provider", get_default_llm_provider()))
+        st.caption(f"Active language model provider: {active_provider_label}")
         st.write(
             "Upload kidney scRNA-seq data, review the agent's analysis plan, "
             "and execute quality control workflows with real-time monitoring."

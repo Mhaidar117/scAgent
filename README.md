@@ -119,6 +119,32 @@ print(response["plan"])
 
 See `examples/quickstart.ipynb` for a complete walkthrough of the package functionality.
 
+## Language Model Providers
+
+scAgent supports both local Ollama models and the OpenAI Chat API. Ollama remains the default provider so existing workflows keep running without changes.
+
+### Configuration
+
+- `LLM_PROVIDER`: Set to `ollama` (default) or `openai` to choose the backend.
+- `OPENAI_API_KEY`: Required when `LLM_PROVIDER=openai`; requests fail without it.
+- `OPENAI_MODEL`: Optional override for the OpenAI chat model (defaults to `gpt-4o-mini`).
+- `OPENAI_API_BASE`: Optional base URL for Azure OpenAI or proxy deployments.
+
+Install the optional dependency with `pip install langchain-openai` if you plan to use the OpenAI provider.
+
+### Streamlit UI
+
+When launching `streamlit_app.py`, the sidebar now includes a toggle between **Local Ollama** and **OpenAI API**. The active backend is displayed in the sidebar and in the main header. Switching providers clears the cached agent and reloads the session with the newly selected model.
+
+### Staying on Ollama
+
+No extra configuration is required to continue using Ollama. Ensure the local Ollama service is running and leave `LLM_PROVIDER` unset (or set it to `ollama`).
+
+### OpenAI Usage Notes
+
+- Set `OPENAI_API_KEY` before starting the CLI or Streamlit app (for example: `export OPENAI_API_KEY=sk-...`).
+- OpenAI usage is billed per request and subject to rate limits. Monitor your account quota when running large analyses.
+
 ## Architecture
 
 ### Core Components
