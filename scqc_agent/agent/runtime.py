@@ -13,7 +13,7 @@ try:
     from langchain_core.runnables import RunnablePassthrough, RunnableLambda
     from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
     from langchain_community.llms import Ollama
-    from langchain_ollama import ChatOllama
+    from langchain_community.chat_models import ChatOllama
     LANGCHAIN_AVAILABLE = True
 except ImportError:
     LANGCHAIN_AVAILABLE = False

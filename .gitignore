@@ -134,6 +134,7 @@ runs/
 *.h5ad
 *.h5
 state.json
+streamlit_state.json
 .DS_Store
 
 # IDE
