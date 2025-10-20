@@ -59,10 +59,11 @@ class Agent:
         if Path(state_path).exists():
             self.load_state()
         
-        # Initialize knowledge base and retriever
+        # Initialize knowledge base and retriever (lazy loading)
         self.kb_path = knowledge_base_path or str(Path(__file__).parent.parent.parent / "kb")
         self.retriever: Optional[HybridRetriever] = None
-        self._init_retriever()
+        # Lazy load retriever - only initialize when needed to prevent blocking
+        # self._init_retriever()  # Commented out for lazy loading
         
         # Initialize LangChain components
         self._init_chains()
@@ -74,12 +75,43 @@ class Agent:
         self._add_phase8_tools()
     
     def _init_retriever(self) -> None:
-        """Initialize the hybrid retriever if KB exists."""
+        """Initialize the hybrid retriever if KB exists (with lazy loading support)."""
+        # Skip if already initialized
+        if self.retriever is not None:
+            return
+
         try:
             if Path(self.kb_path).exists():
-                self.retriever = HybridRetriever(self.kb_path)
+                # Check if index needs to be built (could be slow on first run)
+                index_dir = Path(self.kb_path) / "kb.index"
+                if not index_dir.exists():
+                    print("Note: Building knowledge base index (first time setup, this may take a moment)...")
+
+                # Initialize with timeout for safety
+                from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+
+                with ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(HybridRetriever, self.kb_path)
+                    try:
+                        # Allow more time if building index for first time
+                        timeout = 60 if not index_dir.exists() else 15
+                        self.retriever = future.result(timeout=timeout)
+                        if self.retriever:
+                            print("✓ Knowledge base retriever initialized")
+                    except FutureTimeoutError:
+                        print(f"Warning: Retriever initialization timed out. RAG features disabled.")
+                        self.retriever = None
+                    except Exception as e:
+                        print(f"Warning: Could not initialize retriever: {e}")
+                        self.retriever = None
         except Exception as e:
             print(f"Warning: Could not initialize retriever: {e}")
+            self.retriever = None
+
+    def _ensure_retriever(self) -> None:
+        """Ensure retriever is initialized (for lazy loading)."""
+        if self.retriever is None and Path(self.kb_path).exists():
+            self._init_retriever()
     
     def _init_chains(self) -> None:
         """Initialize LangChain LCEL chains for agent workflow."""
@@ -93,13 +125,45 @@ class Agent:
             self.summarize_chain = None
             self.llm = None
             return
-        
-        # Use local Ollama model (assuming it's available)
-        try:
-            self.llm = ChatOllama(model="llama3.1", temperature=0.1)
-        except:
-            # Fallback to a simple mock LLM for testing
-            self.llm = None
+
+        # Use local Ollama model with timeout to prevent hanging
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+
+        def init_ollama():
+            """Initialize ChatOllama - this can block if Ollama is slow."""
+            try:
+                # Check Ollama connectivity first
+                import subprocess
+                result = subprocess.run(
+                    ["curl", "-s", "--max-time", "1", "http://localhost:11434/api/tags"],
+                    capture_output=True, text=True, timeout=2
+                )
+                if result.returncode != 0:
+                    print("Warning: Ollama service not responding. Using fallback mode.")
+                    return None
+
+                # Try to initialize ChatOllama
+                return ChatOllama(model="llama3.1", temperature=0.1)
+            except Exception as e:
+                print(f"Warning: Could not initialize Ollama: {e}. Using fallback mode.")
+                return None
+
+        # Initialize with timeout to prevent hanging
+        print("Initializing LLM (timeout: 10s)...")
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(init_ollama)
+            try:
+                self.llm = future.result(timeout=10)
+                if self.llm:
+                    print("✓ LLM initialized successfully")
+            except FutureTimeoutError:
+                print("Warning: LLM initialization timed out after 10s. Using fallback mode.")
+                self.llm = None
+                # Try to cancel the future to clean up
+                future.cancel()
+            except Exception as e:
+                print(f"Warning: LLM initialization failed: {e}. Using fallback mode.")
+                self.llm = None
         
         # Load prompts
         prompts_dir = Path(__file__).parent / "prompts"
@@ -532,8 +596,9 @@ class Agent:
     
     def _generate_plan(self, message: str, intent: str) -> List[Dict[str, Any]]:
         """Generate execution plan with RAG context and tissue-aware priors."""
-        # Retrieve relevant context
+        # Retrieve relevant context (lazy load retriever if needed)
         context = ""
+        self._ensure_retriever()  # Initialize retriever if not already done
         if self.retriever:
             try:
                 docs = self.retriever.retrieve(message, k=3)
