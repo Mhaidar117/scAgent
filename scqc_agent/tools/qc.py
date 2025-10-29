@@ -455,10 +455,11 @@ def plot_qc_metrics(
     try:
         # Load data
         adata = _load_adata_from_state(state)
-        
-        # Create output directory
-        step_dir = ensure_run_dir(state, "qc_plots")
-        
+
+        # Create unique step-specific output directory to preserve all plots throughout workflow
+        step_num = len(state.history)
+        step_dir = ensure_run_dir(state, f"step_{step_num:02d}_qc_plots_{stage}")
+
         artifacts = []
         
         # Generate plots (placeholder implementation)
@@ -568,8 +569,8 @@ def plot_qc_metrics(
             plt.close()
             artifacts.append(str(hist_path))
 
-        # Create checkpoint for QC plots
-        checkpoint_path = step_dir / f"qc_plots_{stage}_checkpoint.h5ad"
+        # Create checkpoint for QC plots with descriptive label
+        checkpoint_path = step_dir / f"checkpoint_qc_plots_{stage}.h5ad"
         state.checkpoint(str(checkpoint_path), f"qc_plots_{stage}")
 
         # Register plots with state

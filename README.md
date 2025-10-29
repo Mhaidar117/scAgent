@@ -58,6 +58,9 @@ pip install "scqc-agent[dev]"
 
 # Install with QC dependencies (Phase 1+)
 pip install "scqc-agent[qc]"
+
+# Install for current working condition
+pip install -e ".[dev,ui,agent,qc,models]"
 ```
 
 ### Development Installation
@@ -67,7 +70,7 @@ git clone https://github.com/your-org/scqc-agent.git
 cd scqc-agent
 
 # Create virtual environment
-python -m venv scQC
+python -m venv scQC  # or python3.11 -m venv scQC
 source scQC/bin/activate  # On Windows: scQC\Scripts\activate
 
 # Install in development mode
@@ -119,6 +122,110 @@ print(response["plan"])
 
 See `examples/quickstart.ipynb` for a complete walkthrough of the package functionality.
 
+### Streamlit Web Interface
+
+scQC Agent provides an interactive web interface built with Streamlit for visual workflow management and real-time monitoring.
+
+#### Launching the App
+
+```bash
+# Activate your virtual environment
+source scQC/bin/activate  # On Windows: scQC\Scripts\activate
+
+# Launch the Streamlit app
+python -m streamlit run streamlit_app.py
+```
+
+The app will open in your default browser at `http://localhost:8501`.
+
+#### Key Features
+
+**Session Management**
+- Create new analysis sessions or switch between existing ones
+- Sessions are stored in `streamlit_sessions/` directory
+- Each session maintains separate workflow state, artifacts, and history
+- Dropdown selector shows all sessions with metadata (cell count, last modified date)
+
+**Data Upload Options**
+
+The app supports two upload modes:
+
+1. **Multi-file Upload (Kidney Workflow)**
+   - Upload raw droplet matrix (.h5)
+   - Upload filtered cell matrix (.h5)
+   - Upload metadata file (.csv or .xlsx) - optional
+   - Designed for complete kidney scRNA-seq analysis workflow
+
+2. **Single File Upload**
+   - Upload pre-processed AnnData files (.h5ad or .h5ad.gz)
+   - Quick start for datasets already in AnnData format
+
+**Plan and Execute Workflow**
+
+The app follows a two-phase workflow pattern:
+
+1. **Planning Phase**: Submit a natural language query (e.g., "Compute QC metrics for my mouse kidney data")
+   - Agent generates an execution plan
+   - Review proposed steps and parameters
+   - Plan is displayed with tool names and arguments
+
+2. **Execution Phase**: Review and approve the plan
+   - Click "Execute Plan" to run the workflow
+   - Monitor real-time progress and tool outputs
+   - View generated artifacts immediately
+
+**Real-time Monitoring**
+- Execution history with timestamps
+- Artifact catalog with inline image previews
+- Workflow history showing all completed steps
+- Validation results and error messages
+- Tool execution summaries with citations
+
+**Provider Selection**
+
+Switch between language model backends directly in the sidebar:
+- **Local Ollama**: Free, runs locally, no API key needed
+- **OpenAI API**: Cloud-based, requires API key, faster responses
+
+The active provider is displayed in both the sidebar and main header.
+
+#### Example Streamlit Workflow
+
+```bash
+# 1. Start the app
+python -m streamlit run streamlit_app.py
+
+# 2. In the browser:
+#    - Create new session or select existing one
+#    - Upload your data files
+#    - Enter query: "Compute QC metrics and generate violin plots"
+#    - Review the generated plan
+#    - Click "Execute Plan"
+#    - View artifacts in the catalog
+
+# 3. Continue analysis:
+#    - "Filter cells with min_genes=500 and max_pct_mt=10"
+#    - "Run PCA, build neighbor graph, and create UMAP"
+#    - "Detect doublets using DoubletFinder"
+```
+
+#### Artifact Visualization
+
+The app automatically displays generated artifacts:
+- **Images** (PNG, JPG): Inline preview with zoom
+- **Data files** (CSV, JSON): Download button
+- **Checkpoints** (.h5ad): Path and metadata display
+
+All artifacts are preserved throughout the workflow, allowing you to track analysis progression.
+
+#### Session Persistence
+
+Sessions are automatically saved and can be resumed later:
+- State files stored in `streamlit_sessions/`
+- Complete workflow history preserved
+- Artifacts remain accessible across sessions
+- Session metadata includes creation date, last modified, and cell counts
+
 ## Language Model Providers
 
 scAgent supports both local Ollama models and the OpenAI Chat API. Ollama remains the default provider so existing workflows keep running without changes.
@@ -131,10 +238,6 @@ scAgent supports both local Ollama models and the OpenAI Chat API. Ollama remain
 - `OPENAI_API_BASE`: Optional base URL for Azure OpenAI or proxy deployments.
 
 Install the optional dependency with `pip install langchain-openai` if you plan to use the OpenAI provider.
-
-### Streamlit UI
-
-When launching `streamlit_app.py`, the sidebar now includes a toggle between **Local Ollama** and **OpenAI API**. The active backend is displayed in the sidebar and in the main header. Switching providers clears the cached agent and reloads the session with the newly selected model.
 
 ### Staying on Ollama
 
@@ -222,9 +325,9 @@ This project uses:
 
 ### Graph Analysis 
 
-- [ ] PCA, neighbors, UMAP computation
+- [X] PCA, neighbors, UMAP computation
 - [ ] Leiden clustering
-- [ ] Quick graph generation tools
+- [X] Quick graph generation tools
 
 ### Advanced Methods 
 

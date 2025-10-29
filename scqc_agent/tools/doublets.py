@@ -304,9 +304,10 @@ def detect_doublets(
                 artifacts=[],
                 citations=[]
             )
-        
-        # Create step directory
-        step_dir_path = f"runs/{state.run_id}/step_11_doublets_detect"
+
+        # Create unique step-specific directory to preserve all doublet detection results
+        step_num = len(state.history)
+        step_dir_path = f"runs/{state.run_id}/step_{step_num:02d}_doublets_detect"
         step_dir = ensure_run_dir(step_dir_path)
         
         artifacts = []
@@ -641,9 +642,10 @@ def apply_doublet_filter(
             threshold = state.metadata.get('doublet_threshold')
             if threshold is None or not np.isfinite(threshold):
                 threshold = np.percentile(adata.obs['doublet_score'], 95)
-        
-        # Create step directory
-        step_dir_path = f"runs/{state.run_id}/step_11_doublets_apply"
+
+        # Create unique step-specific directory to preserve all doublet filtering results
+        step_num = len(state.history)
+        step_dir_path = f"runs/{state.run_id}/step_{step_num:02d}_doublets_apply"
         step_dir = ensure_run_dir(step_dir_path)
         
         artifacts = []
@@ -737,8 +739,8 @@ def apply_doublet_filter(
         
         state_delta = {
             "adata_path": str(checkpoint_path),  # Update to point to filtered checkpoint
-            "cells_before_doublet_filter": original_n_cells,
-            "cells_after_doublet_filter": n_kept,
+            "cells_before_doublet_filter": int(original_n_cells),  # Convert NumPy int64 to Python int
+            "cells_after_doublet_filter": int(n_kept),  # Convert NumPy int64 to Python int
             "doublets_removed": int(n_doublets),
             "doublet_filter_threshold": round(float(threshold) if threshold is not None else 0.0, 4),
             "final_doublet_rate": round(final_doublet_rate, 4),

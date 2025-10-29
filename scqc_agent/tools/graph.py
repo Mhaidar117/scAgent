@@ -115,9 +115,10 @@ def quick_graph(
         # Adjust n_pcs if we have fewer genes
         n_pcs = min(n_pcs, n_genes - 1, n_cells - 1)
         n_neighbors = min(n_neighbors, n_cells - 1)
-        
-        # Create step directory
-        step_dir_path = f"runs/{state.run_id}/step_07_quick_graph"
+
+        # Create unique step-specific directory to preserve all UMAPs throughout workflow
+        step_num = len(state.history)
+        step_dir_path = f"runs/{state.run_id}/step_{step_num:02d}_quick_graph"
         step_dir = ensure_run_dir(step_dir_path)
         
         # Backup current .obs if it has previous clustering
@@ -386,18 +387,13 @@ def graph_from_rep(
         
         # Adjust parameters for dataset size
         n_neighbors = min(n_neighbors, n_cells - 1)
-        
-        # Determine step number based on representation
-        step_map = {
-            "X_scAR": "09",
-            "X_scVI": "10b", 
-            "X_pca": "07b"
-        }
-        step_num = step_map.get(use_rep, "99")
+
+        # Create unique step-specific directory to preserve all UMAPs throughout workflow
+        step_num = len(state.history)
         rep_short = use_rep.replace("X_", "").lower()
-        
+
         # Create step directory
-        step_dir_path = f"runs/{state.run_id}/step_{step_num}_graph_{rep_short}"
+        step_dir_path = f"runs/{state.run_id}/step_{step_num:02d}_graph_{rep_short}"
         step_dir = ensure_run_dir(step_dir_path)
         
         # Backup current graph info
@@ -585,9 +581,10 @@ def final_graph(
         
         # Adjust parameters for dataset size
         n_neighbors = min(n_neighbors, n_cells - 1)
-        
-        # Create step directory
-        step_dir_path = f"runs/{state.run_id}/step_12_final_graph"
+
+        # Create unique step-specific directory to preserve all UMAPs throughout workflow
+        step_num = len(state.history)
+        step_dir_path = f"runs/{state.run_id}/step_{step_num:02d}_final_graph"
         step_dir = ensure_run_dir(step_dir_path)
         
         # Backup current graph info
