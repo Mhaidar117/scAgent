@@ -1,6 +1,6 @@
 """Pydantic schemas for tool input validation and output serialization."""
 
-from typing import Dict, Any, List, Optional, Literal, Union
+from typing import Dict, Any, List, Optional, Literal, Union, Tuple
 from pydantic import BaseModel, Field, validator
 from pathlib import Path
 
@@ -59,9 +59,9 @@ class PlotQCMetricsInput(BaseModel):
 
 class ApplyQCFiltersInput(BaseModel):
     """Input schema for apply_qc_filters tool."""
-    
-    min_genes: Optional[int] = Field(
-        default=None,
+
+    min_genes: int = Field(
+        default=1000,
         ge=0,
         description="Minimum number of genes per cell"
     )
@@ -70,52 +70,30 @@ class ApplyQCFiltersInput(BaseModel):
         ge=0,
         description="Maximum number of genes per cell"
     )
-    min_counts: Optional[int] = Field(
-        default=None,
-        ge=0,
-        description="Minimum total UMI counts per cell"
-    )
-    max_counts: Optional[int] = Field(
-        default=None,
-        ge=0,
-        description="Maximum total UMI counts per cell"
-    )
-    max_pct_mt: Optional[float] = Field(
-        default=None,
+    max_pct_mt: float = Field(
+        default=10.0,
         ge=0.0,
         le=100.0,
         description="Maximum mitochondrial percentage"
-    )
-    min_cells: Optional[int] = Field(
-        default=None,
-        ge=0,
-        description="Minimum number of cells expressing each gene"
     )
     method: Literal["threshold", "MAD", "quantile"] = Field(
         default="threshold",
         description="Filtering method to use"
     )
-    
+
     @validator('max_genes')
     def max_genes_greater_than_min(cls, v, values):
-        if v is not None and 'min_genes' in values and values['min_genes'] is not None:
+        if v is not None and 'min_genes' in values:
             if v <= values['min_genes']:
                 raise ValueError('max_genes must be greater than min_genes')
-        return v
-    
-    @validator('max_counts')
-    def max_counts_greater_than_min(cls, v, values):
-        if v is not None and 'min_counts' in values and values['min_counts'] is not None:
-            if v <= values['min_counts']:
-                raise ValueError('max_counts must be greater than min_counts')
         return v
     
     class Config:
         schema_extra = {
             "example": {
-                "min_genes": 200,
-                "max_pct_mt": 20.0,
-                "min_cells": 3,
+                "min_genes": 500,
+                "max_genes": 8000,
+                "max_pct_mt": 10.0,
                 "method": "threshold"
             }
         }
@@ -235,7 +213,7 @@ class FinalGraphInput(BaseModel):
 # scAR Tool Schemas
 class RunScarInput(BaseModel):
     """Input schema for run_scar tool."""
-    
+
     batch_key: str = Field(
         default="SampleID",
         description="Column in adata.obs for batch information"
@@ -255,14 +233,56 @@ class RunScarInput(BaseModel):
         ge=0,
         description="Random seed for reproducibility"
     )
-    
+    use_raw_data: bool = Field(
+        default=True,
+        description="Whether to use raw data if available (enables scvi.external.SCAR mode)"
+    )
+    prob: float = Field(
+        default=0.995,
+        ge=0.9,
+        le=0.999,
+        description="Probability threshold for ambient profile estimation (scvi.external.SCAR mode)"
+    )
+    min_ambient_counts: int = Field(
+        default=100,
+        ge=10,
+        le=1000,
+        description="Threshold for cell-free droplets (used in ambient profile calculation)"
+    )
+
     class Config:
         schema_extra = {
             "example": {
                 "batch_key": "batch",
                 "epochs": 100,
                 "replace_X": True,
-                "random_seed": 42
+                "random_seed": 42,
+                "use_raw_data": True,
+                "prob": 0.995,
+                "min_ambient_counts": 100
+            }
+        }
+
+
+class GenerateKneePlotInput(BaseModel):
+    """Input schema for generate_knee_plot tool."""
+
+    min_counts: int = Field(
+        default=100,
+        ge=10,
+        le=1000,
+        description="Threshold for classifying cell-free droplets"
+    )
+    output_dir: Optional[str] = Field(
+        default=None,
+        description="Optional output directory (defaults to step_08_scar_knee)"
+    )
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "min_counts": 100,
+                "output_dir": None
             }
         }
 
@@ -307,7 +327,7 @@ class RunScviInput(BaseModel):
 # Doublet Detection Tool Schemas
 class DetectDoubletsInput(BaseModel):
     """Input schema for detect_doublets tool."""
-    
+
     method: Literal["scrublet", "doubletfinder"] = Field(
         default="scrublet",
         description="Doublet detection method"
@@ -318,37 +338,140 @@ class DetectDoubletsInput(BaseModel):
         le=0.5,
         description="Expected doublet rate"
     )
-    threshold: Optional[float] = Field(
-        default=None,
-        ge=0.0,
-        le=1.0,
-        description="Custom doublet score threshold (auto if not provided)"
+    threshold: Union[float, Literal["auto"]] = Field(
+        default="auto",
+        description="Custom doublet score threshold (auto for automatic detection)"
     )
-    
+    pK: Union[float, Literal["auto"]] = Field(
+        default="auto",
+        description="DoubletFinder neighborhood parameter (auto to optimize via sweep)"
+    )
+    pN: float = Field(
+        default=0.25,
+        ge=0.1,
+        le=0.5,
+        description="DoubletFinder proportion of artificial doublets"
+    )
+    n_prin_comps: int = Field(
+        default=30,
+        ge=10,
+        le=100,
+        description="Number of PCA components for DoubletFinder"
+    )
+    run_pk_sweep: bool = Field(
+        default=True,
+        description="Whether to run pK optimization sweep (DoubletFinder only)"
+    )
+    random_seed: int = Field(
+        default=0,
+        ge=0,
+        description="Random seed for reproducibility"
+    )
+
     class Config:
         schema_extra = {
             "example": {
-                "method": "scrublet",
+                "method": "doubletfinder",
                 "expected_rate": 0.06,
-                "threshold": None
+                "threshold": "auto",
+                "pK": "auto",
+                "pN": 0.25,
+                "n_prin_comps": 30,
+                "run_pk_sweep": True,
+                "random_seed": 0
             }
         }
 
 
 class ApplyDoubletFilterInput(BaseModel):
     """Input schema for apply_doublet_filter tool."""
-    
+
     threshold: Optional[float] = Field(
         default=None,
         ge=0.0,
         le=1.0,
         description="Custom threshold for filtering (uses detected threshold if not provided)"
     )
-    
+
     class Config:
         schema_extra = {
             "example": {
                 "threshold": None
+            }
+        }
+
+
+class RunPkSweepInput(BaseModel):
+    """Input schema for run_pk_sweep_only tool."""
+
+    pK_grid: Tuple[float, ...] = Field(
+        default=(0.005, 0.01, 0.02, 0.03, 0.05),
+        description="Tuple of pK values to test"
+    )
+    expected_rate: float = Field(
+        default=0.06,
+        ge=0.01,
+        le=0.5,
+        description="Expected doublet rate"
+    )
+    pN: float = Field(
+        default=0.25,
+        ge=0.1,
+        le=0.5,
+        description="Proportion of artificial doublets"
+    )
+    n_prin_comps: int = Field(
+        default=30,
+        ge=10,
+        le=100,
+        description="Number of PCA components"
+    )
+    random_seed: int = Field(
+        default=0,
+        ge=0,
+        description="Random seed for reproducibility"
+    )
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "pK_grid": (0.005, 0.01, 0.02, 0.03, 0.05),
+                "expected_rate": 0.06,
+                "pN": 0.25,
+                "n_prin_comps": 30,
+                "random_seed": 0
+            }
+        }
+
+
+class CurateDoubletsByMarkersInput(BaseModel):
+    """Input schema for curate_doublets_by_markers tool."""
+
+    marker_dict: Dict[str, List[str]] = Field(
+        ...,
+        description="Dictionary mapping cell type names to marker gene lists"
+    )
+    cluster_key: str = Field(
+        default="leiden",
+        description="Column in adata.obs containing cluster assignments"
+    )
+    avg_exp_threshold: float = Field(
+        default=2.0,
+        ge=0.1,
+        le=10.0,
+        description="Expression threshold for considering a marker expressed"
+    )
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "marker_dict": {
+                    "Proximal_Tubule": ["Lrp2", "Slc5a12"],
+                    "Endothelial": ["Flt1", "Emcn"],
+                    "Immune": ["Ptprc", "Cd68"]
+                },
+                "cluster_key": "leiden",
+                "avg_exp_threshold": 2.0
             }
         }
 
@@ -529,9 +652,135 @@ class CompareClustersInput(BaseModel):
         }
 
 
+# Checkpoint Visualization Tool Schemas
+class GenerateCheckpointUmapInput(BaseModel):
+    """Input schema for generate_checkpoint_umap tool."""
+
+    stage_label: str = Field(
+        ...,
+        description="Stage name (e.g., 'postSCAR', 'postDoublets')"
+    )
+    layer: Optional[str] = Field(
+        default=None,
+        description="Layer to use as X (e.g., 'counts_denoised'). If None, uses current X"
+    )
+    resolution: float = Field(
+        default=2.0,
+        ge=0.1,
+        le=5.0,
+        description="Leiden clustering resolution"
+    )
+    n_pcs: int = Field(
+        default=40,
+        ge=10,
+        le=100,
+        description="Number of principal components"
+    )
+    random_seed: int = Field(
+        default=42,
+        ge=0,
+        description="Random seed for reproducibility"
+    )
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "stage_label": "postSCAR",
+                "layer": "counts_denoised",
+                "resolution": 2.0,
+                "n_pcs": 40,
+                "random_seed": 42
+            }
+        }
+
+
+# Multi-file Loader Tool Schemas
+class LoadKidneyDataInput(BaseModel):
+    """Input schema for load_kidney_data tool.
+
+    Loads kidney scRNA-seq datasets consisting of raw 10X HDF5, filtered 10X HDF5,
+    and metadata CSV files. Validates file existence and formats.
+    """
+
+    raw_h5_path: str = Field(
+        ...,
+        description="Path to raw (unfiltered) 10X HDF5 matrix file containing all droplets"
+    )
+    filtered_h5_path: str = Field(
+        ...,
+        description="Path to filtered 10X HDF5 matrix file containing cells only"
+    )
+    meta_csv_path: str = Field(
+        ...,
+        description="Path to metadata CSV file with sample annotations (species, sex, age, tissue_type, etc.)"
+    )
+    sample_id_column: str = Field(
+        default="sample_ID",
+        description="Column name in metadata CSV containing sample identifiers"
+    )
+    metadata_merge_column: Optional[str] = Field(
+        default=None,
+        description="Column in metadata to merge with AnnData.obs (defaults to sample_id_column)"
+    )
+    make_unique: bool = Field(
+        default=True,
+        description="Make gene names unique by appending suffixes to duplicates"
+    )
+
+    @validator('raw_h5_path')
+    def raw_h5_must_exist(cls, v):
+        """Validate raw H5 file exists and has correct extension."""
+        path = Path(v)
+        if not path.exists():
+            raise ValueError(f'Raw H5 file does not exist: {v}')
+        if not path.suffix.lower() in ['.h5', '.hdf5']:
+            raise ValueError(f'Raw file must be a 10X H5 file (.h5 or .hdf5): {v}')
+        return str(path.absolute())
+
+    @validator('filtered_h5_path')
+    def filtered_h5_must_exist(cls, v):
+        """Validate filtered H5 file exists and has correct extension."""
+        path = Path(v)
+        if not path.exists():
+            raise ValueError(f'Filtered H5 file does not exist: {v}')
+        if not path.suffix.lower() in ['.h5', '.hdf5']:
+            raise ValueError(f'Filtered file must be a 10X H5 file (.h5 or .hdf5): {v}')
+        return str(path.absolute())
+
+    @validator('meta_csv_path')
+    def meta_csv_must_exist(cls, v):
+        """Validate metadata CSV file exists and has correct extension."""
+        path = Path(v)
+        if not path.exists():
+            raise ValueError(f'Metadata CSV file does not exist: {v}')
+        if not path.suffix.lower() == '.csv':
+            raise ValueError(f'Metadata file must be a CSV file (.csv): {v}')
+        return str(path.absolute())
+
+    @validator('sample_id_column')
+    def sample_id_column_not_empty(cls, v):
+        """Validate sample ID column name is not empty."""
+        if not v or not v.strip():
+            raise ValueError('sample_id_column cannot be empty')
+        return v.strip()
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "raw_h5_path": "data/kidney_raw.h5",
+                "filtered_h5_path": "data/kidney_filtered.h5",
+                "meta_csv_path": "data/kidney_metadata.csv",
+                "sample_id_column": "sample_ID",
+                "metadata_merge_column": None,
+                "make_unique": True
+            }
+        }
+
+
 # Tool registry mapping tool names to their input schemas
 TOOL_SCHEMAS = {
     "load_data": LoadDataInput,
+    "load_kidney_data": LoadKidneyDataInput,
     "compute_qc_metrics": ComputeQCMetricsInput,
     "plot_qc": PlotQCMetricsInput,
     "apply_qc_filters": ApplyQCFiltersInput,
@@ -539,12 +788,16 @@ TOOL_SCHEMAS = {
     "graph_from_rep": GraphFromRepInput,
     "final_graph": FinalGraphInput,
     "run_scar": RunScarInput,
+    "generate_knee_plot": GenerateKneePlotInput,
     "run_scvi": RunScviInput,
     "detect_doublets": DetectDoubletsInput,
     "apply_doublet_filter": ApplyDoubletFilterInput,
+    "run_pk_sweep_only": RunPkSweepInput,
+    "curate_doublets_by_markers": CurateDoubletsByMarkersInput,
     "detect_marker_genes": DetectMarkerGenesInput,
     "annotate_clusters": AnnotateClustersInput,
     "compare_clusters": CompareClustersInput,
+    "generate_checkpoint_umap": GenerateCheckpointUmapInput,
 }
 
 
@@ -613,19 +866,24 @@ def list_available_tools() -> List[str]:
 # Tool description metadata
 TOOL_DESCRIPTIONS = {
     "load_data": "Import AnnData files (.h5ad) into the session for analysis",
+    "load_kidney_data": "Load kidney scRNA-seq datasets from raw 10X H5, filtered 10X H5, and metadata CSV files",
     "compute_qc_metrics": "Calculate quality control metrics including mitochondrial percentages and gene counts",
     "plot_qc": "Generate visualizations of QC metrics to assess data quality",
     "apply_qc_filters": "Apply quality control filters to remove low-quality cells and genes",
     "quick_graph": "Perform PCA → neighbors → UMAP → Leiden clustering for quick analysis",
     "graph_from_rep": "Generate graph analysis from a specific representation (e.g., X_scVI)",
     "final_graph": "Final graph analysis step with optimized parameters",
-    "run_scar": "Apply scAR (single-cell Ambient Remover) for denoising ambient RNA",
+    "run_scar": "Apply scAR (single-cell Ambient Remover) for denoising ambient RNA with dual-mode support (scvi.external.SCAR or standalone)",
+    "generate_knee_plot": "Generate knee plot visualization showing droplet distribution and calculate ambient RNA profile",
     "run_scvi": "Train scVI model for batch correction and latent representation learning",
-    "detect_doublets": "Identify doublets (multi-cell droplets) using Scrublet or DoubletFinder",
+    "detect_doublets": "Identify doublets (multi-cell droplets) using Scrublet or DoubletFinder with pK optimization",
     "apply_doublet_filter": "Remove detected doublets from the dataset",
+    "run_pk_sweep_only": "Run DoubletFinder pK parameter optimization without applying detection",
+    "curate_doublets_by_markers": "Manually identify doublet clusters based on incompatible marker co-expression",
     "detect_marker_genes": "Detect marker genes for each cluster using differential expression analysis",
     "annotate_clusters": "Annotate clusters with cell type labels using CellTypist or built-in markers",
     "compare_clusters": "Perform differential expression analysis between cluster groups with volcano plots",
+    "generate_checkpoint_umap": "Generate UMAP visualization at pipeline checkpoint without modifying data",
 }
 
 

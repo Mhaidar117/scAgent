@@ -1,0 +1,113 @@
+# Intent Classification Examples for scQC Agent
+
+examples:
+  load_data:
+    - "Load the PBMC dataset from data/pbmc3k.h5ad"
+    - "Import my single cell data"
+    - "Please load the AnnData file I just uploaded"
+    - "Can you read the h5ad file in the examples folder?"
+    - "Import data from the file system"
+    
+  compute_qc:
+    - "Calculate quality control metrics"
+    - "Compute QC stats for my data"
+    - "Run quality control analysis"
+    - "Calculate mitochondrial percentages"
+    - "Compute per-cell and per-gene metrics"
+    - "I need QC metrics calculated"
+    
+  plot_qc:
+    - "Show me QC plots"
+    - "Visualize quality control metrics"
+    - "Generate QC visualizations"
+    - "Plot the mitochondrial percentages"
+    - "Create violin plots of QC metrics"
+    - "Show distribution of genes per cell"
+    
+  apply_filters:
+    - "Filter out low quality cells"
+    - "Apply QC filters with min_genes 200"
+    - "Remove cells with high mitochondrial content"
+    - "Filter genes expressed in few cells"
+    - "Clean the data by removing outliers"
+    - "Apply threshold-based filtering"
+    
+  run_scar:
+    - "Run scAR denoising"
+    - "Remove ambient RNA contamination"
+    - "Denoise the data with scAR"
+    - "Apply ambient RNA removal"
+    - "Clean up ambient RNA effects"
+    
+  run_scvi:
+    - "Run scVI batch correction"
+    - "Integrate batches with scVI"
+    - "Apply batch correction"
+    - "Train scVI model for integration"
+    - "Correct for batch effects"
+    
+  detect_doublets:
+    - "Find doublets in my data"
+    - "Detect multi-cell droplets"
+    - "Run doublet detection with Scrublet"
+    - "Identify doublets using expected rate 0.06"
+    - "Check for doublets in the dataset"
+    
+  graph_analysis:
+    - "Generate UMAP embedding"
+    - "Create clustering analysis"
+    - "Build neighbor graph and cluster"
+    - "Run PCA and UMAP"
+    - "Perform graph-based clustering"
+    - "Generate dimensionality reduction"
+    
+  other:
+    - "What can you help me with?"
+    - "Show me the current session state"
+    - "How do I get started?"
+    - "What tools are available?"
+    - "Help me understand the workflow"
+
+# Intent descriptions for context
+descriptions:
+  load_data: "Import AnnData files or other single-cell datasets into the session"
+  compute_qc: "Calculate quality control metrics including mitochondrial percentages, gene counts, and UMI counts"
+  plot_qc: "Generate visualizations of QC metrics to assess data quality and identify filtering thresholds"
+  apply_filters: "Apply quality control filters to remove low-quality cells and genes based on specified thresholds"
+  run_scar: "Apply scAR (single-cell Ambient Remover) to denoise ambient RNA contamination"
+  run_scvi: "Use scVI for batch correction and learning integrated latent representations"
+  detect_doublets: "Identify and optionally remove doublets (multi-cell droplets) using methods like Scrublet"
+  graph_analysis: "Perform dimensionality reduction, neighbor graph construction, and clustering analysis"
+  other: "General requests, help, or unclear intentions that need clarification"
+
+# Common parameter patterns
+parameter_patterns:
+  min_genes:
+    - "min_genes 200"
+    - "minimum 500 genes"
+    - "at least 250 genes per cell"
+    - "genes per cell threshold of 300"
+  
+  max_pct_mt:
+    - "max_pct_mt 20"
+    - "mitochondrial percentage less than 15%"
+    - "MT% threshold of 25"
+    - "maximum 20% mitochondrial"
+  
+  species:
+    - "human data"
+    - "mouse samples"
+    - "human cells"
+    - "for human analysis"
+  
+  resolution:
+    - "resolution 0.5"
+    - "clustering resolution 1.0"
+    - "use resolution 0.8"
+    - "set resolution to 1.2"
+  
+  expected_rate:
+    - "expected rate 0.06"
+    - "doublet rate 6%"
+    - "expect 0.08 doublets"
+    - "expected doublet rate 8%"

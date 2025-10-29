@@ -157,30 +157,49 @@ class SessionState:
     
     def save(self, filepath: str) -> None:
         """Save session state to a JSON file.
-        
+
         Args:
             filepath: Path where to save the state file
         """
+        # Helper function to convert numpy types to native Python types
+        def convert_numpy_types(obj):
+            """Recursively convert numpy types to native Python types."""
+            import numpy as np
+
+            if isinstance(obj, (np.integer, np.int64, np.int32, np.int16, np.int8)):
+                return int(obj)
+            elif isinstance(obj, (np.floating, np.float64, np.float32)):
+                return float(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, dict):
+                return {k: convert_numpy_types(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_numpy_types(item) for item in obj]
+            elif isinstance(obj, tuple):
+                return tuple(convert_numpy_types(item) for item in obj)
+            return obj
+
         state_data = {
             "run_id": self.run_id,
-            "history": self.history,
+            "history": convert_numpy_types(self.history),
             "adata_path": self.adata_path,
-            "artifacts": self.artifacts,
-            "metadata": self.metadata,
-            "dataset_summary": self.dataset_summary,
+            "artifacts": convert_numpy_types(self.artifacts),
+            "metadata": convert_numpy_types(self.metadata),
+            "dataset_summary": convert_numpy_types(self.dataset_summary),
             "created_at": self.created_at,
             "updated_at": self.updated_at
         }
-        
+
         # Ensure directory exists
         Path(filepath).parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Write to temporary file first, then move to target (atomic operation)
         temp_filepath = f"{filepath}.tmp"
         try:
             with open(temp_filepath, 'w') as f:
-                json.dump(state_data, f, indent=2)
-            
+                json.dump(state_data, f, indent=2, default=str)  # Add default=str as fallback
+
             # Only replace the original if write was successful
             import os
             os.replace(temp_filepath, filepath)

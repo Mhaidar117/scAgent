@@ -1,0 +1,43 @@
+{
+  "Sample": "Kidney_7",
+  "Date": "2025-10-19",
+  "Final_Cells": 3520,
+  "Genes_Detected": 13023,
+  "Filtering_Steps": [
+    "initial: 8877 cells",
+    "post_SCAR: 8877 cells",
+    "post_QC_filtering: 8728 cells",
+    "post_doublet_auto: 8178 cells",
+    "post_doublet_manual: 3520 cells",
+    "final: 3520 cells"
+  ],
+  "Stage_Wise_Counts": {
+    "initial": 8877,
+    "post_SCAR": 8877,
+    "post_QC_filtering": 8728,
+    "post_doublet_auto": 8178,
+    "post_doublet_manual": 3520,
+    "final": 3520
+  },
+  "Cell_Type_Composition": {
+    "EC": 1428,
+    "PTS1": 801,
+    "TALB": 446,
+    "FIB": 418,
+    "DCT2": 193,
+    "VSMC": 120,
+    "CNT": 91,
+    "MES": 23
+  },
+  "Missing_Cell_Types": [
+    "PTS2",
+    "PTS3",
+    "DTL",
+    "TALA",
+    "DCT1",
+    "PC",
+    "ICA",
+    "ICB",
+    "PODO"
+  ]
+}

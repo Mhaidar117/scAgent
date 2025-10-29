@@ -1,6 +1,7 @@
 """LangChain-based agent runtime for scQC Agent (Phase 5)."""
 
 import json
+import os
 import yaml
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Union
@@ -12,11 +13,19 @@ try:
     from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
     from langchain_core.runnables import RunnablePassthrough, RunnableLambda
     from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
-    from langchain_community.llms import Ollama
-    from langchain_ollama import ChatOllama
     LANGCHAIN_AVAILABLE = True
 except ImportError:
     LANGCHAIN_AVAILABLE = False
+
+try:
+    from langchain_community.llms import Ollama
+    from langchain_community.chat_models import ChatOllama
+    LANGCHAIN_OLLAMA_AVAILABLE = True
+except ImportError:
+    LANGCHAIN_OLLAMA_AVAILABLE = False
+
+SUPPORTED_LLM_PROVIDERS = {"ollama", "openai"}
+DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 
 try:
     from jinja2 import Template, Environment, FileSystemLoader
@@ -45,24 +54,37 @@ except ImportError:
 class Agent:
     """LangChain-powered agent for handling scQC workflow messages."""
     
-    def __init__(self, state_path: str, knowledge_base_path: Optional[str] = None):
+    def __init__(
+        self,
+        state_path: str,
+        knowledge_base_path: Optional[str] = None,
+        provider: Optional[str] = None,
+        openai_model: Optional[str] = None,
+    ):
         """Initialize agent with state file path and optional knowledge base.
         
         Args:
             state_path: Path to session state file
             knowledge_base_path: Path to knowledge base directory
+            provider: Preferred LLM provider ("ollama" or "openai"), defaults to env var
+            openai_model: Optional override for the OpenAI chat completion model
         """
         self.state_path = state_path
         self.state: SessionState = SessionState()
+        self.provider = self._determine_provider(provider)
+        env_model = openai_model or os.getenv("OPENAI_MODEL")
+        cleaned_model = env_model.strip() if env_model else ""
+        self.openai_model = cleaned_model or DEFAULT_OPENAI_MODEL
         
         # Try to load existing state
         if Path(state_path).exists():
             self.load_state()
         
-        # Initialize knowledge base and retriever
+        # Initialize knowledge base and retriever (lazy loading)
         self.kb_path = knowledge_base_path or str(Path(__file__).parent.parent.parent / "kb")
         self.retriever: Optional[HybridRetriever] = None
-        self._init_retriever()
+        # Lazy load retriever - only initialize when needed to prevent blocking
+        # self._init_retriever()  # Commented out for lazy loading
         
         # Initialize LangChain components
         self._init_chains()
@@ -74,12 +96,51 @@ class Agent:
         self._add_phase8_tools()
     
     def _init_retriever(self) -> None:
-        """Initialize the hybrid retriever if KB exists."""
+        """Initialize the hybrid retriever if KB exists (with lazy loading support)."""
+        # Skip if already initialized
+        if self.retriever is not None:
+            return
+
         try:
             if Path(self.kb_path).exists():
-                self.retriever = HybridRetriever(self.kb_path)
+                # Check if index needs to be built (could be slow on first run)
+                index_dir = Path(self.kb_path) / "kb.index"
+                if not index_dir.exists():
+                    print("Note: Building knowledge base index (first time setup, this may take a moment)...")
+
+                # Initialize with timeout for safety
+                from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+
+                with ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(HybridRetriever, self.kb_path)
+                    try:
+                        # Allow more time if building index for first time
+                        timeout = 60 if not index_dir.exists() else 15
+                        self.retriever = future.result(timeout=timeout)
+                        if self.retriever:
+                            print("✓ Knowledge base retriever initialized")
+                    except FutureTimeoutError:
+                        print(f"Warning: Retriever initialization timed out. RAG features disabled.")
+                        self.retriever = None
+                    except Exception as e:
+                        print(f"Warning: Could not initialize retriever: {e}")
+                        self.retriever = None
         except Exception as e:
             print(f"Warning: Could not initialize retriever: {e}")
+            self.retriever = None
+
+    def _ensure_retriever(self) -> None:
+        """Ensure retriever is initialized (for lazy loading)."""
+        if self.retriever is None and Path(self.kb_path).exists():
+            self._init_retriever()
+
+    def _determine_provider(self, provider: Optional[str]) -> str:
+        """Resolve the desired LLM provider with environment fallback."""
+        configured = provider or os.getenv("LLM_PROVIDER", "ollama")
+        normalized = configured.strip().lower() if configured else "ollama"
+        if normalized not in SUPPORTED_LLM_PROVIDERS:
+            print(f"Warning: Unsupported LLM provider '{configured}'. Falling back to 'ollama'.")
+        return normalized if normalized in SUPPORTED_LLM_PROVIDERS else "ollama"
     
     def _init_chains(self) -> None:
         """Initialize LangChain LCEL chains for agent workflow."""
@@ -93,13 +154,32 @@ class Agent:
             self.summarize_chain = None
             self.llm = None
             return
-        
-        # Use local Ollama model (assuming it's available)
-        try:
-            self.llm = ChatOllama(model="llama3.1", temperature=0.1)
-        except:
-            # Fallback to a simple mock LLM for testing
-            self.llm = None
+
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+
+        provider_label = "OpenAI API" if self.provider == "openai" else "Ollama"
+        timeout_seconds = 10
+        print(f"Initializing {provider_label} LLM (timeout: {timeout_seconds}s)...")
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(self._initialize_llm_client)
+            try:
+                self.llm = future.result(timeout=timeout_seconds)
+                if self.llm:
+                    print("✓ LLM initialized successfully")
+                elif self.provider == "openai":
+                    raise RuntimeError("OpenAI initialization returned no client. See previous warnings.")
+            except FutureTimeoutError:
+                print(f"Warning: {provider_label} initialization timed out after {timeout_seconds}s.")
+                self.llm = None
+                future.cancel()
+                if self.provider == "openai":
+                    raise RuntimeError("OpenAI initialization timed out. Check network connectivity.")
+            except Exception as e:
+                if self.provider == "openai":
+                    self.llm = None
+                    raise
+                print(f"Warning: LLM initialization failed: {e}. Using fallback mode.")
+                self.llm = None
         
         # Load prompts
         prompts_dir = Path(__file__).parent / "prompts"
@@ -118,6 +198,64 @@ class Agent:
         
         # Summarize Chain
         self.summarize_chain = self._create_summarize_chain(prompts_dir)
+
+    def _initialize_llm_client(self) -> Optional[Any]:
+        """Factory wrapper for initializing the selected LLM provider."""
+        if self.provider == "openai":
+            return self._init_openai_llm()
+        return self._init_ollama_llm()
+
+    def _init_ollama_llm(self) -> Optional[Any]:
+        """Initialize ChatOllama - this can block if Ollama is slow."""
+        if not LANGCHAIN_OLLAMA_AVAILABLE:
+            print("Warning: langchain_community package not available. Ollama provider disabled.")
+            return None
+
+        try:
+            # Check Ollama connectivity first
+            import subprocess
+            result = subprocess.run(
+                ["curl", "-s", "--max-time", "1", "http://localhost:11434/api/tags"],
+                capture_output=True,
+                text=True,
+                timeout=2,
+            )
+            if result.returncode != 0:
+                print("Warning: Ollama service not responding. Using fallback mode.")
+                return None
+
+            # Try to initialize ChatOllama
+            return ChatOllama(model="llama3.1", temperature=0.1)
+        except Exception as e:
+            print(f"Warning: Could not initialize Ollama: {e}. Using fallback mode.")
+            return None
+
+    def _init_openai_llm(self) -> Any:
+        """Initialize the OpenAI Chat model via langchain-openai."""
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise RuntimeError(
+                "OPENAI_API_KEY environment variable is required when LLM_PROVIDER='openai'."
+            )
+
+        try:
+            from langchain_openai import ChatOpenAI
+        except ImportError as exc:
+            raise ImportError(
+                "langchain-openai is required for LLM_PROVIDER='openai'. Install it with "
+                "`pip install langchain-openai`."
+            ) from exc
+
+        base_url = os.getenv("OPENAI_API_BASE")
+        client_kwargs: Dict[str, Any] = {
+            "model": self.openai_model or DEFAULT_OPENAI_MODEL,
+            "api_key": api_key,
+            "temperature": 0.1,
+        }
+        if base_url:
+            client_kwargs["base_url"] = base_url
+
+        return ChatOpenAI(**client_kwargs)
     
     def _create_intent_chain(self, prompts_dir: Path) -> Optional[Any]:
         """Create intent classification chain."""
@@ -198,14 +336,23 @@ class Agent:
         
         Available tools:
         - load_data: Load AnnData files
+        - load_kidney_data: Load kidney scRNA-seq (raw H5, filtered H5, metadata CSV)
         - compute_qc_metrics: Calculate QC metrics (species: human/mouse/other)
         - plot_qc: Generate QC plots
         - apply_qc_filters: Filter cells/genes
-        - quick_graph: PCA→neighbors→UMAP→Leiden
-        - run_scar: scAR denoising
-        - run_scvi: scVI integration
-        - detect_doublets: Doublet detection
+        - generate_knee_plot: Visualize droplets and calculate ambient RNA profile
+        - run_scar: scAR denoising (supports raw data for ambient correction)
+        - generate_checkpoint_umap: Generate UMAP at any pipeline stage
+        - detect_doublets: Doublet detection (scrublet or doubletfinder with pK sweep)
+        - run_pk_sweep: Optimize DoubletFinder pK parameter
+        - curate_doublets_by_markers: Manual doublet curation by marker expression
         - apply_doublet_filter: Remove doublets
+        - quick_graph: PCA→neighbors→UMAP→Leiden
+        - graph_from_rep: Build graph from representation (X_pca, X_scVI, etc.)
+        - run_scvi: scVI integration
+        - detect_marker_genes: Find cluster markers
+        - annotate_clusters: Cell type annotation
+        - compare_clusters: Differential expression
         - final_graph: Final analysis
         
         Return a JSON array of step objects with "tool", "description", and "params":
@@ -330,6 +477,7 @@ class Agent:
         """Initialize registry of available tools."""
         self.tools = {
             "load_data": self._load_data_tool,
+            "load_kidney_data": self._load_kidney_data_tool,
             "compute_qc_metrics": self._compute_qc_tool,
             "plot_qc": self._plot_qc_tool,
             "apply_qc_filters": self._apply_qc_filters_tool,
@@ -344,6 +492,11 @@ class Agent:
             "detect_marker_genes": self._detect_marker_genes_tool,
             "annotate_clusters": self._annotate_clusters_tool,
             "compare_clusters": self._compare_clusters_tool,
+            # New kidney pipeline tools
+            "generate_knee_plot": self._generate_knee_plot_tool,
+            "run_pk_sweep": self._run_pk_sweep_tool,
+            "curate_doublets_by_markers": self._curate_doublets_by_markers_tool,
+            "generate_checkpoint_umap": self._generate_checkpoint_umap_tool,
         }
     
     def _add_phase8_tools(self) -> None:
@@ -517,8 +670,9 @@ class Agent:
     
     def _generate_plan(self, message: str, intent: str) -> List[Dict[str, Any]]:
         """Generate execution plan with RAG context and tissue-aware priors."""
-        # Retrieve relevant context
+        # Retrieve relevant context (lazy load retriever if needed)
         context = ""
+        self._ensure_retriever()  # Initialize retriever if not already done
         if self.retriever:
             try:
                 docs = self.retriever.retrieve(message, k=3)
@@ -1116,10 +1270,29 @@ class Agent:
                 # Use tissue-specific doublet rate
                 if "expected_doublet_rate" not in params:
                     params["expected_doublet_rate"] = thresholds.get("doublet_rate", 0.08)
-                
+
                 if detected_tissue:
                     enhanced_step["description"] = f"{step.get('description', 'Detect doublets')} (expected rate: {thresholds.get('doublet_rate', 0.08):.1%} for {detected_tissue})"
-            
+
+            # CRITICAL FIX: Enhance annotation tools with detected tissue type
+            elif tool == "annotate_clusters":
+                # Add species if detected
+                if detected_species and "species" not in params:
+                    params["species"] = detected_species
+                    print(f"Enhanced plan: Setting species={detected_species} for annotate_clusters")
+
+                # Add tissue if detected
+                if detected_tissue and "tissue" not in params:
+                    params["tissue"] = detected_tissue
+                    print(f"Enhanced plan: Setting tissue={detected_tissue} for annotate_clusters")
+                    enhanced_step["description"] = f"Annotate clusters using {detected_species or 'species'} {detected_tissue} markers"
+
+            # Also enhance marker detection with species
+            elif tool == "detect_marker_genes":
+                if detected_species and "species" not in params:
+                    params["species"] = detected_species
+                    print(f"Enhanced plan: Setting species={detected_species} for detect_marker_genes")
+
             enhanced_step["params"] = params
             enhanced_plan.append(enhanced_step)
         
@@ -1180,6 +1353,22 @@ class Agent:
             )
     
         
+
+    def _load_kidney_data_tool(self, params: Dict[str, Any]) -> ToolResult:
+        """Wrapper for load_kidney_data tool.
+
+        Loads kidney scRNA-seq datasets from raw 10X H5, filtered 10X H5,
+        and metadata CSV files.
+
+        Args:
+            params: Tool parameters from agent plan
+
+        Returns:
+            ToolResult with loaded data checkpoints and artifacts
+        """
+        from ..tools.multiload import load_kidney_data
+        return load_kidney_data(self.state, **params)
+
     def _validate_data_loaded(self) -> bool:
         """Check if AnnData file is loaded."""
         return bool(self.state.adata_path and Path(self.state.adata_path).exists())
@@ -1240,6 +1429,28 @@ class Agent:
         """Final graph tool wrapper."""
         from ..tools.graph import final_graph
         return final_graph(self.state, **params)
+
+    # === NEW KIDNEY PIPELINE TOOLS ===
+
+    def _generate_knee_plot_tool(self, params: Dict[str, Any]) -> ToolResult:
+        """Knee plot generation tool wrapper."""
+        from ..tools.scar import generate_knee_plot
+        return generate_knee_plot(self.state, **params)
+
+    def _run_pk_sweep_tool(self, params: Dict[str, Any]) -> ToolResult:
+        """DoubletFinder pK sweep tool wrapper."""
+        from ..tools.doublets import run_pk_sweep_only
+        return run_pk_sweep_only(self.state, **params)
+
+    def _curate_doublets_by_markers_tool(self, params: Dict[str, Any]) -> ToolResult:
+        """Manual doublet curation tool wrapper."""
+        from ..tools.doublets import curate_doublets_by_markers
+        return curate_doublets_by_markers(self.state, **params)
+
+    def _generate_checkpoint_umap_tool(self, params: Dict[str, Any]) -> ToolResult:
+        """Checkpoint visualization tool wrapper."""
+        from ..tools.checkpoint_viz import generate_checkpoint_umap
+        return generate_checkpoint_umap(self.state, **params)
 
     def _detect_marker_genes_tool(self, params: Dict[str, Any]) -> ToolResult:
         """Marker gene detection tool wrapper."""
@@ -1445,4 +1656,3 @@ class Agent:
             "tool_results": result.get("tool_results", []),
             "status": result.get("status", "completed")
         }
-

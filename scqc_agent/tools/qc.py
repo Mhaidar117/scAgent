@@ -207,7 +207,10 @@ def compute_qc_metrics(
         # Save snapshot
         run_dir_path = f"runs/{state.run_id}"
         snapshot_result = save_snapshot("step04", run_dir_path, adata)
-        
+
+        # Get snapshot path from artifacts (first artifact is the snapshot)
+        snapshot_path_str = str(snapshot_result.artifacts[0]) if snapshot_result.artifacts else None
+
         # Update dataset summary
         dataset_summary = state.dataset_summary.copy()
         dataset_summary.update({
@@ -216,13 +219,18 @@ def compute_qc_metrics(
             "n_mito_genes": int(adata.var['mt'].sum()),
             "qc_metrics": qc_summary["qc_metrics"]
         })
-        
+
+        # CRITICAL: Update adata_path so subsequent tools load data with QC metrics
+        state_delta = {"dataset_summary": dataset_summary}
+        if snapshot_path_str:
+            state_delta["adata_path"] = snapshot_path_str
+
         return ToolResult(
             message=(
                 f"QC metrics computed for {adata.n_obs:,} cells, {adata.n_vars:,} genes. "
                 f"Species: {species}, Mitochondrial genes: {adata.var['mt'].sum()}"
             ),
-            state_delta={"dataset_summary": dataset_summary},
+            state_delta=state_delta,
             artifacts=[summary_path, json_path] + snapshot_result.artifacts,
             citations=[
                 "Luecken & Theis (2019) Mol Syst Biol",
@@ -447,10 +455,11 @@ def plot_qc_metrics(
     try:
         # Load data
         adata = _load_adata_from_state(state)
-        
-        # Create output directory
-        step_dir = ensure_run_dir(state, "qc_plots")
-        
+
+        # Create unique step-specific output directory to preserve all plots throughout workflow
+        step_num = len(state.history)
+        step_dir = ensure_run_dir(state, f"step_{step_num:02d}_qc_plots_{stage}")
+
         artifacts = []
         
         # Generate plots (placeholder implementation)
@@ -482,13 +491,98 @@ def plot_qc_metrics(
             plt.close()
             artifacts.append(str(violin_path))
 
-        # Create checkpoint for QC plots
-        checkpoint_path = step_dir / f"qc_plots_{stage}_checkpoint.h5ad"
+        if "scatter" in plot_types:
+            # Scatter plots for QC metric relationships
+            fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+            # Genes vs Counts
+            axes[0].scatter(adata.obs['total_counts'],
+                          adata.obs['n_genes_by_counts'],
+                          alpha=0.5, s=1)
+            axes[0].set_xlabel('Total Counts')
+            axes[0].set_ylabel('Number of Genes')
+            axes[0].set_title('Genes vs Total Counts')
+            axes[0].set_xscale('log')
+            axes[0].set_yscale('log')
+
+            # MT% vs Counts
+            if 'pct_counts_mt' in adata.obs.columns:
+                axes[1].scatter(adata.obs['total_counts'],
+                              adata.obs['pct_counts_mt'],
+                              alpha=0.5, s=1)
+                axes[1].set_xlabel('Total Counts')
+                axes[1].set_ylabel('Mitochondrial %')
+                axes[1].set_title('MT% vs Total Counts')
+                axes[1].set_xscale('log')
+
+            # MT% vs Genes
+            if 'pct_counts_mt' in adata.obs.columns:
+                axes[2].scatter(adata.obs['n_genes_by_counts'],
+                              adata.obs['pct_counts_mt'],
+                              alpha=0.5, s=1)
+                axes[2].set_xlabel('Number of Genes')
+                axes[2].set_ylabel('Mitochondrial %')
+                axes[2].set_title('MT% vs Number of Genes')
+                axes[2].set_xscale('log')
+
+            plt.tight_layout()
+            scatter_path = step_dir / f"qc_scatter_{stage}.png"
+            plt.savefig(scatter_path, dpi=300, bbox_inches='tight')
+            plt.close()
+            artifacts.append(str(scatter_path))
+
+        if "histogram" in plot_types:
+            # Histogram distributions of QC metrics
+            fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+            # Distribution of genes per cell
+            axes[0].hist(adata.obs['n_genes_by_counts'], bins=50, edgecolor='black')
+            axes[0].set_xlabel('Number of Genes')
+            axes[0].set_ylabel('Number of Cells')
+            axes[0].set_title('Distribution of Genes per Cell')
+            axes[0].axvline(adata.obs['n_genes_by_counts'].median(),
+                          color='red', linestyle='--', label='Median')
+            axes[0].legend()
+
+            # Distribution of counts per cell
+            axes[1].hist(adata.obs['total_counts'], bins=50, edgecolor='black')
+            axes[1].set_xlabel('Total Counts')
+            axes[1].set_ylabel('Number of Cells')
+            axes[1].set_title('Distribution of Total Counts')
+            axes[1].axvline(adata.obs['total_counts'].median(),
+                          color='red', linestyle='--', label='Median')
+            axes[1].legend()
+
+            # Distribution of MT%
+            if 'pct_counts_mt' in adata.obs.columns:
+                axes[2].hist(adata.obs['pct_counts_mt'], bins=50, edgecolor='black')
+                axes[2].set_xlabel('Mitochondrial %')
+                axes[2].set_ylabel('Number of Cells')
+                axes[2].set_title('Distribution of MT%')
+                axes[2].axvline(adata.obs['pct_counts_mt'].median(),
+                              color='red', linestyle='--', label='Median')
+                axes[2].legend()
+
+            plt.tight_layout()
+            hist_path = step_dir / f"qc_histogram_{stage}.png"
+            plt.savefig(hist_path, dpi=300, bbox_inches='tight')
+            plt.close()
+            artifacts.append(str(hist_path))
+
+        # Create checkpoint for QC plots with descriptive label
+        checkpoint_path = step_dir / f"checkpoint_qc_plots_{stage}.h5ad"
         state.checkpoint(str(checkpoint_path), f"qc_plots_{stage}")
 
         # Register plots with state
         for artifact in artifacts:
-            state.add_artifact(str(artifact), f"QC Violin Plot ({stage})")
+            if "violin" in artifact:
+                state.add_artifact(str(artifact), f"QC Violin Plot ({stage})")
+            elif "scatter" in artifact:
+                state.add_artifact(str(artifact), f"QC Scatter Plot ({stage})")
+            elif "histogram" in artifact:
+                state.add_artifact(str(artifact), f"QC Histogram Plot ({stage})")
+            else:
+                state.add_artifact(str(artifact), f"QC Plot ({stage})")
         
         return ToolResult(
             message=f"✅ Generated {len(artifacts)} QC plots for {stage}-filtering data",

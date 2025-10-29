@@ -134,6 +134,7 @@ runs/
 *.h5ad
 *.h5
 state.json
+streamlit_state.json
 .DS_Store
 
 # IDE
@@ -164,7 +165,7 @@ models/scar/
 Progress_Reports/
 
 #prompts
-Prompts/
+/Prompts/
 
 # Tests - keep tests but exclude test artifacts
 tests/**/runs/
@@ -174,6 +175,7 @@ tests/**/temp/
 tests/**/Data_files/
 
 #states
+.scqc_state.json
 .scqc_state.json.backup
 
 .claude/
@@ -189,3 +191,13 @@ PLAN_VALIDATION_SUMMARY.md
 
 # readme
 README.md
+
+# test results
+test_results.txt
+PLAN_VALIDATION_DESIGN.md
+scQC_Agent_User_Flow.md
+streamlit_workflow_issues.md
+
+# runtime backups
+scqc_agent/agent/runtime.py.backup_20251019_143738
+scqc_agent/agent/runtime.py.backup_20251019_190256
