@@ -500,16 +500,17 @@ If you use scQC Agent in your research, please cite:
   title={scQC Agent: Natural Language Interface for scRNA-seq Quality Control},
   author={scQC Agent Team},
   year={2025},
-  url={https://github.com/your-org/scqc-agent}
+  url={https://github.com/Mhaidar117/scAgent}
 }
 ```
 
 ## Acknowledgments
-
-- Built on the excellent [Scanpy](https://scanpy.readthedocs.io/) ecosystem
-- Inspired by QC best practices from [Luecken & Theis (2019)](https://doi.org/10.15252/msb.20188746)
-- Powered by [LangChain](https://langchain.com/) for natural language processing
-
 ---
 
-**Status**: Graph Analysis under development 9/28/25
+- Guided by A Practical Framework for Kidney scRNAseq Analysis from [The Nelson Lab](https://usckrc.github.io/website/scRNAseq_guide.html#SoupX)
+- Inspired by [The Alonge Lab](https://scholars.ufl.edu/kimberly.alonge/about) and [The Tovar Lab](https://www.tovarlab.org/team/David-A.-Tovar)
+- Built on the [Scanpy](https://scanpy.readthedocs.io/) ecosystem
+- Powered by [LangChain](https://langchain.com/) for natural language processing
+---
+
+**Status**: Graph Analysis under development 10/28/25
