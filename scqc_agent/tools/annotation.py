@@ -193,7 +193,14 @@ def annotate_clusters(
         custom_markers_path: Path to custom marker JSON file
 
     Returns:
-        ToolResult with annotations, confidence scores, and visualizations
+        ToolResult with annotations, confidence scores, and visualizations:
+        - umap_annotated.png: UMAP colored by cell type
+        - cell_type_distribution.png: Bar plot of cell counts per type
+        - marker_validation_dotplot.png: Dot plot of marker genes vs cell types
+        - marker_validation_heatmap.png: Heatmap of top markers per cell type
+        - annotation_confidence.png: Confidence scores per cell type
+        - annotation_summary.csv: Summary table of annotations
+        - cell_type_scores.csv: Score matrix (marker method only)
     """
     if not SCANPY_AVAILABLE:
         return ToolResult(
@@ -231,6 +238,7 @@ def annotate_clusters(
         artifacts = []
         citations = []
         annotation_method_used = None
+        markers_used = None  # Store markers for visualization
 
         # Choose annotation method
         use_celltypist = False
@@ -314,6 +322,9 @@ def annotate_clusters(
                     citations=[]
                 )
 
+            # Store markers for visualization
+            markers_used = markers
+
             # Compute scores
             score_df = _compute_marker_scores(adata, markers)
 
@@ -387,6 +398,109 @@ def annotate_clusters(
             plt.savefig(barplot_path, dpi=300, bbox_inches='tight')
             plt.close()
             artifacts.append(str(barplot_path))
+
+            # 3. Marker validation dot plot (for marker-based annotation)
+            if markers_used is not None and len(markers_used) > 0:
+                try:
+                    # Collect all marker genes that exist in the data
+                    all_marker_genes = []
+                    marker_gene_to_celltype = {}
+
+                    for cell_type, genes in markers_used.items():
+                        for gene in genes:
+                            if gene in adata.var_names:
+                                if gene not in all_marker_genes:
+                                    all_marker_genes.append(gene)
+                                    marker_gene_to_celltype[gene] = cell_type
+
+                    if len(all_marker_genes) > 0:
+                        # Create dot plot showing marker expression across cell types
+                        plt.figure(figsize=(max(14, len(all_marker_genes) * 0.5), 8))
+                        sc.pl.dotplot(
+                            adata,
+                            var_names=all_marker_genes,
+                            groupby='cell_type',
+                            dendrogram=False,
+                            show=False,
+                            save=False,
+                            standard_scale='var'  # Scale each gene to [0, 1]
+                        )
+
+                        dotplot_path = step_dir / "marker_validation_dotplot.png"
+                        plt.savefig(dotplot_path, dpi=300, bbox_inches='tight')
+                        plt.close()
+                        artifacts.append(str(dotplot_path))
+                except Exception as e:
+                    print(f"Warning: Could not generate marker validation dot plot: {e}")
+
+            # 4. Marker heatmap (for marker-based annotation)
+            if markers_used is not None and len(markers_used) > 0:
+                try:
+                    # Get marker genes present in data
+                    heatmap_genes = []
+                    for cell_type, genes in markers_used.items():
+                        for gene in genes[:3]:  # Top 3 markers per cell type
+                            if gene in adata.var_names and gene not in heatmap_genes:
+                                heatmap_genes.append(gene)
+
+                    if len(heatmap_genes) > 0:
+                        plt.figure(figsize=(12, max(8, len(heatmap_genes) * 0.3)))
+                        sc.pl.heatmap(
+                            adata,
+                            var_names=heatmap_genes,
+                            groupby='cell_type',
+                            cmap='viridis',
+                            dendrogram=True,
+                            swap_axes=True,
+                            show=False,
+                            save=False
+                        )
+
+                        heatmap_path = step_dir / "marker_validation_heatmap.png"
+                        plt.savefig(heatmap_path, dpi=300, bbox_inches='tight')
+                        plt.close()
+                        artifacts.append(str(heatmap_path))
+                except Exception as e:
+                    print(f"Warning: Could not generate marker validation heatmap: {e}")
+
+            # 5. Confidence visualization per cell type
+            if 'cell_type_confidence' in adata.obs.columns:
+                try:
+                    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+                    # Box plot of confidence by cell type
+                    confidence_data = adata.obs[['cell_type', 'cell_type_confidence']].copy()
+                    cell_types_sorted = confidence_data.groupby('cell_type')['cell_type_confidence'].median().sort_values(ascending=False).index
+
+                    ax1 = axes[0]
+                    confidence_data.boxplot(
+                        column='cell_type_confidence',
+                        by='cell_type',
+                        ax=ax1,
+                        rot=45
+                    )
+                    ax1.set_title('Annotation Confidence by Cell Type')
+                    ax1.set_xlabel('Cell Type')
+                    ax1.set_ylabel('Confidence Score')
+                    plt.suptitle('')  # Remove automatic title
+
+                    # Bar plot of mean confidence per cell type
+                    ax2 = axes[1]
+                    mean_conf = confidence_data.groupby('cell_type')['cell_type_confidence'].mean().sort_values(ascending=True)
+                    colors = plt.cm.RdYlGn(mean_conf / mean_conf.max())
+                    mean_conf.plot(kind='barh', ax=ax2, color=colors)
+                    ax2.set_xlabel('Mean Confidence Score')
+                    ax2.set_ylabel('Cell Type')
+                    ax2.set_title('Mean Annotation Confidence by Cell Type')
+
+                    plt.tight_layout()
+
+                    confidence_path = step_dir / "annotation_confidence.png"
+                    plt.savefig(confidence_path, dpi=300, bbox_inches='tight')
+                    plt.close()
+                    artifacts.append(str(confidence_path))
+                except Exception as e:
+                    print(f"Warning: Could not generate confidence visualization: {e}")
 
         # Save checkpoint with annotations
         checkpoint_result = save_snapshot("annotation", run_dir=step_dir_path, adata=adata)
