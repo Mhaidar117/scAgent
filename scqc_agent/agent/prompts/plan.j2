@@ -78,7 +78,9 @@ You are an expert in single-cell RNA-seq analysis. Generate a detailed step-by-s
 - **detect_marker_genes**: Find differentially expressed marker genes for each cluster
   - Parameters: cluster_key (default: leiden), method (wilcoxon/t-test/logreg), n_genes (default: 100), use_raw
 - **annotate_clusters**: Automatically annotate cell types using markers or reference
-  - Parameters: cluster_key (default: leiden), species (human/mouse), tissue (optional), method (celltypist/markers)
+  - Parameters: cluster_key (default: leiden), species (human/mouse), tissue (optional), method (celltypist/markers/auto)
+  - Generates visualizations: UMAP by cell type, marker validation dot plot, marker heatmap, confidence scores
+  - Use for biological validation of cell type assignments
 - **compare_clusters**: Compare gene expression between two groups of clusters
   - Parameters: cluster_key, group1, group2, method (wilcoxon/t-test/logreg), n_genes
 

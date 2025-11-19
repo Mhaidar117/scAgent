@@ -60,7 +60,21 @@ examples:
     - "Run PCA and UMAP"
     - "Perform graph-based clustering"
     - "Generate dimensionality reduction"
-    
+
+  annotate_clusters:
+    - "Annotate my clusters with cell types"
+    - "Identify cell types in my data"
+    - "Label clusters using CellTypist"
+    - "What cell types are in my dataset?"
+    - "Run cell type annotation"
+    - "Generate marker validation dot plot"
+    - "Show me a dot plot of marker genes"
+    - "Validate my cell type annotations"
+    - "Create heatmap of marker expression"
+    - "Show annotation confidence scores"
+    - "Annotate cells as human brain tissue"
+    - "Use marker database to annotate clusters"
+
   other:
     - "What can you help me with?"
     - "Show me the current session state"
@@ -78,6 +92,7 @@ descriptions:
   run_scvi: "Use scVI for batch correction and learning integrated latent representations"
   detect_doublets: "Identify and optionally remove doublets (multi-cell droplets) using methods like Scrublet"
   graph_analysis: "Perform dimensionality reduction, neighbor graph construction, and clustering analysis"
+  annotate_clusters: "Annotate clusters with cell type labels using CellTypist or marker databases, generating validation visualizations including dot plots, heatmaps, and confidence scores"
   other: "General requests, help, or unclear intentions that need clarification"
 
 # Common parameter patterns
@@ -111,3 +126,17 @@ parameter_patterns:
     - "doublet rate 6%"
     - "expect 0.08 doublets"
     - "expected doublet rate 8%"
+
+  tissue:
+    - "brain tissue"
+    - "kidney samples"
+    - "PBMC data"
+    - "immune cells"
+    - "blood cells"
+    - "cortex tissue"
+
+  annotation_method:
+    - "use CellTypist"
+    - "marker-based annotation"
+    - "use marker database"
+    - "automatic annotation"
