@@ -2,6 +2,8 @@
 
 An open-source agent for reproducible scRNA-seq quality control workflows via natural language.
 
+Sample datasets can be found here: https://usckrc.github.io/website/scRNAseq_guide.html#Download_scRNAseq_guideRmd
+
 ## Mission
 
 The goal of scAgent is to streamline quality control (QC) for novice scRNA-seq researchers and reduce the friction of reproducing processing pipelines across labs. One of the biggest challenges in replicating published experiments is adapting QC pipelines to match another study’s workflow.
